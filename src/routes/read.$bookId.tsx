@@ -40,7 +40,7 @@ function Reader() {
   const pageRef = useRef<HTMLDivElement>(null);
 
   const total = book.pages.length;
-  const zoom = ZOOM_STEPS[zoomIndex];
+  const zoom = ZOOM_STEPS[zoomIndex] ?? 1;
 
   const goTo = useCallback(
     (next: number) => {
@@ -110,7 +110,7 @@ function Reader() {
             style={{ fontSize: `${zoom}rem`, lineHeight: 1.75 }}
             className="mx-auto max-w-[62ch] font-serif"
           >
-            {book.pages[page].map((paragraph, index) => (
+            {(book.pages[page] ?? []).map((paragraph, index) => (
               <p key={index} className={index === 0 ? "" : "mt-5"}>
                 {paragraph}
               </p>
