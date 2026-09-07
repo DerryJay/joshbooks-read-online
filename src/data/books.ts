@@ -4,6 +4,9 @@ import coverAround from "@/assets/cover-around.jpg";
 import coverThusSpoke from "@/assets/cover-thus-spoke.jpg";
 import coverPride from "@/assets/cover-pride.jpg";
 import coverTimeMachine from "@/assets/cover-time-machine.jpg";
+import coverDracula from "@/assets/cover-dracula.jpg";
+import coverSherlock from "@/assets/cover-sherlock.jpg";
+import coverAlice from "@/assets/cover-alice.jpg";
 
 /**
  * Local catalogue for the JoshBooks demo.
@@ -23,9 +26,14 @@ export type Book = {
   shortDescription: string;
   description: string;
   cover: string;
+  featured?: boolean;
+  /** Optional PDF/document file served from /public. The reader falls back to
+   * the text pages below (and shows a clear notice) when it is missing. */
+  documentUrl?: string;
   /** Each entry is one page in the reader. */
   pages: string[][];
 };
+
 
 export const books: Book[] = [
   {
@@ -246,12 +254,140 @@ export const books: Book[] = [
       ],
     ],
   },
+  {
+    id: "dracula",
+    title: "Dracula",
+    author: "Bram Stoker",
+    category: "Gothic",
+    year: "1897",
+    publisher: "Archibald Constable and Company, London",
+    pagesLabel: "418 pages (excerpt in reader)",
+    language: "English",
+    shortDescription:
+      "A solicitor's clerk travels east on business and finds his host is not quite a man.",
+    description:
+      "Assembled from journals, letters, and newspaper cuttings, Dracula sends Jonathan Harker to a castle in the Carpathians and brings its owner back to London. Stoker's patchwork of documents made the vampire modern — and gave the novel its unsettling air of evidence.",
+    cover: coverDracula,
+    featured: true,
+    pages: [
+      [
+        "Chapter I — Jonathan Harker's Journal (kept in shorthand).",
+        "3 May. Bistritz. Left Munich at 8:35 P.M. on 1st May, arriving at Vienna early next morning; should have arrived at 6:46, but train was an hour late.",
+        "Buda-Pesth seems a wonderful place, from the glimpse which I got of it from the train and the little I could walk through the streets. I feared to go very far from the station, as we had arrived late and would start as near the correct time as possible.",
+      ],
+      [
+        "The impression I had was that we were leaving the West and entering the East; the most western of splendid bridges over the Danube, which is here of noble width and depth, took us among the traditions of Turkish rule.",
+        "I read that every known superstition in the world is gathered into the horseshoe of the Carpathians, as if it were the centre of some sort of imaginative whirlpool; if so my stay may be very interesting.",
+      ],
+      [
+        "When I got on the coach the driver had not taken his seat, and I saw him talking with the landlady. They were evidently talking of me, for every now and then they looked at me.",
+        "Some of them whispered words which I looked up afterwards in my polyglot dictionary — and they meant, so far as I could tell, 'werewolf' and 'vampire'.",
+      ],
+      [
+        "Within, stood a tall old man, clean shaven save for a long white moustache, and clad in black from head to foot, without a single speck of colour about him anywhere.",
+        "He held in his hand an antique silver lamp, in which the flame burned without chimney or globe of any kind, throwing long quivering shadows as it flickered in the draught of the open door.",
+        "\"Welcome to my house! Enter freely and of your own will!\"",
+      ],
+      [
+        "I found that the doors were all locked behind me, and that the castle was a veritable prison, and I a prisoner!",
+        "When I had written in my diary I put the book and pen in my pocket, and lay down to wait for a sleep that would not come.",
+        "— End of demo excerpt —",
+      ],
+    ],
+  },
+  {
+    id: "sherlock-holmes",
+    title: "The Adventures of Sherlock Holmes",
+    author: "Arthur Conan Doyle",
+    category: "Mystery",
+    year: "1892",
+    publisher: "George Newnes Ltd., London",
+    pagesLabel: "307 pages (excerpt in reader)",
+    language: "English",
+    shortDescription:
+      "Twelve cases from Baker Street, narrated by the doctor who kept the notes.",
+    description:
+      "The first collected stories of Sherlock Holmes and Dr Watson, from a scandal in Bohemia to a vanished bridegroom. Each case is short, self-contained, and built on the same trick: the ordinary detail nobody thought to look at twice.",
+    cover: coverSherlock,
+    featured: true,
+    pages: [
+      [
+        "A Scandal in Bohemia, I.",
+        "To Sherlock Holmes she is always the woman. I have seldom heard him mention her under any other name. In his eyes she eclipses and predominates the whole of her sex.",
+        "It was not that he felt any emotion akin to love for Irene Adler. All emotions, and that one particularly, were abhorrent to his cold, precise but admirably balanced mind.",
+      ],
+      [
+        "\"You have been in Afghanistan, I perceive.\" I was startled. \"How on earth did you know that?\" I asked.",
+        "\"You see, but you do not observe. The distinction is clear. For example, you have frequently seen the steps which lead up from the hall to this room. How often? Then how many are there?\"",
+        "\"I have no idea.\" \"Quite so! You have not observed. And yet you have seen. That is just my point. Now, I know that there are seventeen steps.\"",
+      ],
+      [
+        "\"It is a capital mistake to theorise before you have all the evidence. It biases the judgment.\"",
+        "\"I never guess. It is a shocking habit — destructive to the logical faculty. What seems strange to you is only so because you do not follow my train of thought or observe the small facts upon which large inferences may depend.\"",
+      ],
+      [
+        "The Red-Headed League. I had called upon my friend, Mr. Sherlock Holmes, one day in the autumn of last year and found him in deep conversation with a very stout, florid-faced elderly gentleman with fiery red hair.",
+        "\"You could not possibly have come at a better time, my dear Watson,\" he said cordially. \"I was afraid that you were engaged.\"",
+      ],
+      [
+        "\"When you have eliminated all which is impossible, then whatever remains, however improbable, must be the truth.\"",
+        "\"Come, Watson, come! The game is afoot. Not a word! Into your clothes and come!\"",
+        "— End of demo excerpt —",
+      ],
+    ],
+  },
+  {
+    id: "alice-in-wonderland",
+    title: "Alice's Adventures in Wonderland",
+    author: "Lewis Carroll",
+    category: "Children's",
+    year: "1865",
+    publisher: "Macmillan and Co., London",
+    pagesLabel: "192 pages (excerpt in reader)",
+    language: "English",
+    shortDescription:
+      "A bored girl follows a hurried rabbit underground and finds the rules have changed.",
+    description:
+      "Carroll's nonsense classic sends Alice down a rabbit hole into a country of croquet-playing queens, riddling hatters, and animals with strong opinions. Beneath the jokes is a small, sharp comedy about logic and the adults who abuse it.",
+    cover: coverAlice,
+    featured: true,
+    pages: [
+      [
+        "Chapter I — Down the Rabbit-Hole.",
+        "Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it.",
+        "\"And what is the use of a book,\" thought Alice, \"without pictures or conversations?\"",
+      ],
+      [
+        "Suddenly a White Rabbit with pink eyes ran close by her. There was nothing so very remarkable in that; nor did Alice think it so very much out of the way to hear the Rabbit say to itself \"Oh dear! Oh dear! I shall be late!\"",
+        "But when the Rabbit actually took a watch out of its waistcoat-pocket, and looked at it, and then hurried on, Alice started to her feet.",
+      ],
+      [
+        "Either the well was very deep, or she fell very slowly, for she had plenty of time as she went down to look about her and to wonder what was going to happen next.",
+        "\"Curiouser and curiouser!\" cried Alice. \"Now I'm opening out like the largest telescope that ever was! Good-bye, feet!\"",
+      ],
+      [
+        "\"Would you tell me, please, which way I ought to go from here?\" \"That depends a good deal on where you want to get to,\" said the Cat.",
+        "\"I don't much care where—\" said Alice. \"Then it doesn't matter which way you go,\" said the Cat.",
+      ],
+      [
+        "\"Off with her head!\" the Queen shouted at the top of her voice. Nobody moved.",
+        "\"Who cares for you?\" said Alice, who had grown to her full size by this time. \"You're nothing but a pack of cards!\"",
+        "— End of demo excerpt —",
+      ],
+    ],
+  },
 ];
 
 export const categories = [
   "All",
   ...Array.from(new Set(books.map((book) => book.category))).sort(),
 ];
+
+/** Books highlighted on the home page and at the top of the catalogue. */
+export const featuredBooks = books.filter((book) => book.featured).length
+  ? books.filter((book) => book.featured)
+  : books.slice(0, 3);
+
 
 export function getBook(id: string): Book | undefined {
   return books.find((book) => book.id === id);
