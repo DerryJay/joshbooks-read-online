@@ -4,6 +4,9 @@ import coverAround from "@/assets/cover-around.jpg";
 import coverThusSpoke from "@/assets/cover-thus-spoke.jpg";
 import coverPride from "@/assets/cover-pride.jpg";
 import coverTimeMachine from "@/assets/cover-time-machine.jpg";
+import coverDracula from "@/assets/cover-dracula.jpg";
+import coverSherlock from "@/assets/cover-sherlock.jpg";
+import coverAlice from "@/assets/cover-alice.jpg";
 
 /**
  * Local catalogue for the JoshBooks demo.
@@ -23,9 +26,14 @@ export type Book = {
   shortDescription: string;
   description: string;
   cover: string;
+  featured?: boolean;
+  /** Optional PDF/document file served from /public. The reader falls back to
+   * the text pages below (and shows a clear notice) when it is missing. */
+  documentUrl?: string;
   /** Each entry is one page in the reader. */
   pages: string[][];
 };
+
 
 export const books: Book[] = [
   {
