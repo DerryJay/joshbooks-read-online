@@ -34,6 +34,12 @@ export const Route = createFileRoute("/books/$bookId")({
 
 function BookDetails() {
   const { book } = Route.useLoaderData();
+  const { record } = useSavedProgress(book.id);
+  const total = book.pages.length;
+  const started = Boolean(record && record.page > 0);
+  const percent = record ? progressPercent(record.page, record.totalPages || total) : 0;
+
+
 
   const facts = [
     ["Author", book.author],
