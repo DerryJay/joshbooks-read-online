@@ -1,6 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
+import { ProgressBar } from "@/components/ContinueReading";
+import { useSavedProgress } from "@/hooks/useReadingProgress";
+import { progressPercent } from "@/lib/reading-progress";
 import { getBook } from "@/data/books";
+
 
 export const Route = createFileRoute("/books/$bookId")({
   loader: ({ params }) => {
@@ -30,6 +34,12 @@ export const Route = createFileRoute("/books/$bookId")({
 
 function BookDetails() {
   const { book } = Route.useLoaderData();
+  const { record } = useSavedProgress(book.id);
+  const total = book.pages.length;
+  const started = Boolean(record && record.page > 0);
+  const percent = record ? progressPercent(record.page, record.totalPages || total) : 0;
+
+
 
   const facts = [
     ["Author", book.author],
@@ -74,13 +84,24 @@ function BookDetails() {
               {book.description}
             </p>
 
+            {started && record ? (
+              <div className="mt-5 max-w-md rounded-xl border border-parchment/10 bg-glass/30 p-4 backdrop-blur-sm">
+                <ProgressBar percent={percent} />
+                <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.12em] text-sand/80">
+                  Reading progress: {percent}% · page {record.page + 1} of{" "}
+                  {record.totalPages || total}
+                </p>
+              </div>
+            ) : null}
+
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
                 to="/read/$bookId"
                 params={{ bookId: book.id }}
                 className="group inline-flex items-center gap-2 rounded-full bg-oxblood px-6 py-3.5 font-sans text-sm font-semibold text-parchment transition-colors hover:bg-oxblood/90"
               >
-                Read Book
+                {started ? "Continue Reading" : "Read Book"}
+
                 <span className="transition-transform duration-200 group-hover:translate-x-0.5">
                   →
                 </span>

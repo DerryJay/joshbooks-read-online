@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { ShelfCard } from "@/components/BookCard";
-import { books } from "@/data/books";
+import { ContinueReading } from "@/components/ContinueReading";
+import { books, featuredBooks } from "@/data/books";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,7 +25,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const featured = books.slice(0, 4);
+  const featured = featuredBooks.slice(0, 4);
+
 
   return (
     <SiteLayout>
@@ -61,12 +64,16 @@ function Home() {
 
         <div className="h-px w-full bg-parchment/10" />
 
+        <ContinueReading eyebrow="(a) where you left off" heading="Continue reading" />
+
         <section className="animate-rise py-7 [animation-delay:80ms]">
+
           <div className="mb-4 flex items-end justify-between">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-parchment/40">
-                (a) on the shelf
+                (b) on the shelf
               </p>
+
               <h2 className="font-serif text-2xl font-semibold tracking-tight text-parchment">
                 Featured volumes
               </h2>
@@ -84,7 +91,7 @@ function Home() {
 
         <section className="animate-rise rounded-2xl border border-parchment/10 bg-glass/25 p-6 backdrop-blur-md [animation-delay:160ms]">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-parchment/40">
-            (b) the room
+            (c) the room
           </p>
           <h2 className="mt-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-parchment">
             A quiet place to read
