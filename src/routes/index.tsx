@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { ShelfCard } from "@/components/BookCard";
-import { books } from "@/data/books";
+import { ContinueReading } from "@/components/ContinueReading";
+import { books, featuredBooks } from "@/data/books";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
