@@ -1,7 +1,13 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Atmosphere } from "@/components/Atmosphere";
 import { getBook } from "@/data/books";
+import { useSavedProgress } from "@/hooks/useReadingProgress";
+import {
+  progressPercent,
+  readReaderTheme,
+  saveReaderTheme,
+  type ReaderTheme,
+} from "@/lib/reading-progress";
 
 export const Route = createFileRoute("/read/$bookId")({
   loader: ({ params }) => {
@@ -30,30 +36,52 @@ export const Route = createFileRoute("/read/$bookId")({
 });
 
 const ZOOM_STEPS = [0.85, 1, 1.15, 1.35, 1.6];
+const DEFAULT_ZOOM = 1;
 
 function Reader() {
   const { book } = Route.useLoaderData();
+  const { record, ready, save } = useSavedProgress(book.id);
+
   const [page, setPage] = useState(0);
-  const [zoomIndex, setZoomIndex] = useState(1);
+  const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [theme, setTheme] = useState<ReaderTheme>("light");
+  const [showInfo, setShowInfo] = useState(false);
+  const [showResume, setShowResume] = useState(false);
+  const [docFailed, setDocFailed] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
 
   const total = book.pages.length;
   const zoom = ZOOM_STEPS[zoomIndex] ?? 1;
+  const percent = progressPercent(page, total);
+  const dark = theme === "dark";
+
+  useEffect(() => {
+    setTheme(readReaderTheme());
+  }, []);
+
+  // Offer to resume where the visitor left off (localStorage, no account).
+  useEffect(() => {
+    if (!ready) return;
+    if (record && record.page > 0 && record.page < total) setShowResume(true);
+  }, [ready, record, total]);
 
   const goTo = useCallback(
     (next: number) => {
-      setPage(Math.min(Math.max(next, 0), total - 1));
+      const clamped = Math.min(Math.max(next, 0), total - 1);
+      setPage(clamped);
+      save(clamped, total);
       pageRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     },
-    [total],
+    [total, save],
   );
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "ArrowRight") goTo(page + 1);
       if (event.key === "ArrowLeft") goTo(page - 1);
+      if (event.key === "Escape") setShowInfo(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -74,110 +102,263 @@ function Reader() {
     }
   };
 
+  const toggleTheme = () => {
+    const next: ReaderTheme = dark ? "light" : "dark";
+    setTheme(next);
+    saveReaderTheme(next);
+  };
+
+  const ctrl =
+    "rounded-full border border-parchment/20 px-4 py-2.5 font-sans text-xs font-medium text-parchment/85 transition-colors hover:border-parchment/45 active:scale-[0.98] disabled:opacity-35";
+  const iconCtrl =
+    "size-10 rounded-full border border-parchment/20 font-sans text-base text-parchment/85 transition-colors hover:border-parchment/45 active:scale-[0.98] disabled:opacity-35";
+
   return (
     <div
       ref={shellRef}
       className="relative flex min-h-screen flex-col bg-water-deep font-sans text-parchment"
     >
-      <Atmosphere />
-
-      <header className="relative z-20 border-b border-parchment/10 bg-water-deep/70 backdrop-blur-md">
-        <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-3.5">
-          <div className="min-w-0">
+      {/* Minimal reader chrome — site header/footer are intentionally hidden. */}
+      <header className="relative z-20 border-b border-parchment/10 bg-water-deep/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-5">
+          <div className="min-w-0 flex-1">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-parchment/40">
               JoshBooks reader
             </p>
-            <h1 className="truncate font-serif text-xl font-semibold tracking-tight text-parchment">
+            <h1 className="truncate font-serif text-lg font-semibold tracking-tight text-parchment sm:text-xl">
               {book.title}
             </h1>
           </div>
+          <button
+            type="button"
+            onClick={() => setShowInfo(true)}
+            className="shrink-0 rounded-full border border-parchment/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-parchment/75 transition-colors hover:border-parchment/45"
+          >
+            Info
+          </button>
           <Link
             to="/books/$bookId"
             params={{ bookId: book.id }}
-            className="shrink-0 rounded-full border border-parchment/20 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-parchment/75 transition-colors hover:border-parchment/40"
+            className="shrink-0 rounded-full border border-parchment/20 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-parchment/75 transition-colors hover:border-parchment/45"
           >
-            ← Back to Book
+            ← Back
           </Link>
+        </div>
+
+        <div className="mx-auto max-w-3xl px-4 pb-3 sm:px-5">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-parchment/15">
+            <div
+              className="h-full rounded-full bg-sand transition-[width] duration-500 ease-out"
+              style={{ width: `${percent}%` }}
+              role="progressbar"
+              aria-valuenow={percent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Reading progress"
+            />
+          </div>
+          <div className="mt-1.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.14em] text-parchment/55">
+            <span>Reading progress: {percent}%</span>
+            <span>
+              Page {page + 1} of {total}
+            </span>
+          </div>
         </div>
       </header>
 
-      <div className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-5 py-6">
-        <div
-          ref={pageRef}
-          className="max-h-[70vh] overflow-y-auto rounded-2xl border border-parchment/10 bg-parchment px-6 py-8 text-ink shadow-2xl sm:px-10 sm:py-12"
-        >
-          <div
-            style={{ fontSize: `${zoom}rem`, lineHeight: 1.75 }}
-            className="mx-auto max-w-[62ch] font-serif"
-          >
-            {(book.pages[page] ?? []).map((paragraph, index) => (
-              <p key={index} className={index === 0 ? "" : "mt-5"}>
-                {paragraph}
-              </p>
-            ))}
-            <p className="mt-10 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-ink/40">
-              {book.title} · demo excerpt · page {page + 1}
+      {showResume && record ? (
+        <div className="relative z-20 mx-auto mt-4 w-full max-w-3xl px-4 sm:px-5">
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-sand/25 bg-glass/40 p-4 backdrop-blur-md">
+            <p className="min-w-0 flex-1 font-sans text-sm text-parchment/80">
+              You stopped on page {record.page + 1} of {record.totalPages || total}.
             </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="sticky bottom-0 z-20 border-t border-parchment/10 bg-water-deep/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-5 py-3">
-          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => goTo(page - 1)}
-              disabled={page === 0}
-              className="rounded-full border border-parchment/20 px-4 py-2 font-sans text-xs font-medium text-parchment/85 transition-colors hover:border-parchment/40 disabled:opacity-35"
+              onClick={() => {
+                goTo(record.page);
+                setShowResume(false);
+              }}
+              className="rounded-full bg-oxblood px-4 py-2.5 font-sans text-xs font-semibold text-parchment transition-colors hover:bg-oxblood/90"
             >
+              Continue Reading
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowResume(false)}
+              className="rounded-full border border-parchment/20 px-4 py-2.5 font-sans text-xs font-medium text-parchment/75 transition-colors hover:border-parchment/45"
+            >
+              Start over
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <main className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-4 py-5 sm:px-5 sm:py-6">
+        {book.documentUrl && !docFailed ? (
+          <iframe
+            src={book.documentUrl}
+            title={`${book.title} document`}
+            onError={() => setDocFailed(true)}
+            className="h-[68vh] w-full rounded-2xl border border-parchment/10 bg-parchment shadow-2xl"
+          />
+        ) : (
+          <>
+            {book.documentUrl && docFailed ? (
+              <div className="mb-4 rounded-xl border border-oxblood/40 bg-oxblood/15 p-4 font-sans text-sm text-parchment/85">
+                The document file for this title could not be loaded. Showing the text edition
+                instead.
+              </div>
+            ) : null}
+            <div
+              ref={pageRef}
+              className={`max-h-[66vh] overflow-y-auto rounded-2xl border px-5 py-8 shadow-2xl transition-colors duration-500 sm:px-10 sm:py-12 ${
+                dark
+                  ? "border-parchment/10 bg-ink text-parchment/90"
+                  : "border-parchment/10 bg-parchment text-ink"
+              }`}
+            >
+              <div
+                style={{ fontSize: `${zoom}rem`, lineHeight: 1.8 }}
+                className="mx-auto max-w-[62ch] font-serif transition-[font-size] duration-300"
+              >
+                {(book.pages[page] ?? []).map((paragraph, index) => (
+                  <p key={index} className={index === 0 ? "" : "mt-6"}>
+                    {paragraph}
+                  </p>
+                ))}
+                <p
+                  className={`mt-10 text-center font-mono text-[10px] uppercase tracking-[0.2em] ${
+                    dark ? "text-parchment/35" : "text-ink/40"
+                  }`}
+                >
+                  {book.title} · demo excerpt · page {page + 1} of {total}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+      </main>
+
+      <div className="sticky bottom-0 z-20 border-t border-parchment/10 bg-water-deep/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="flex items-center justify-between gap-2 sm:justify-start">
+            <button type="button" onClick={() => goTo(page - 1)} disabled={page === 0} className={ctrl}>
               ← Prev
             </button>
             <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-parchment/60">
-              Page {page + 1} / {total}
+              {page + 1} / {total}
             </span>
             <button
               type="button"
               onClick={() => goTo(page + 1)}
               disabled={page === total - 1}
-              className="rounded-full bg-oxblood px-4 py-2 font-sans text-xs font-semibold text-parchment transition-colors hover:bg-oxblood/90 disabled:opacity-35"
+              className="rounded-full bg-oxblood px-4 py-2.5 font-sans text-xs font-semibold text-parchment transition-colors hover:bg-oxblood/90 active:scale-[0.98] disabled:opacity-35"
             >
               Next →
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2 sm:justify-end">
             <button
               type="button"
               onClick={() => setZoomIndex((i) => Math.max(0, i - 1))}
               disabled={zoomIndex === 0}
               aria-label="Zoom out"
-              className="size-9 rounded-full border border-parchment/20 font-sans text-sm text-parchment/85 transition-colors hover:border-parchment/40 disabled:opacity-35"
+              className={iconCtrl}
             >
               −
             </button>
-            <span className="w-12 text-center font-mono text-[11px] text-parchment/60">
-              {Math.round(zoom * 100)}%
-            </span>
+            <button
+              type="button"
+              onClick={() => setZoomIndex(DEFAULT_ZOOM)}
+              aria-label="Reset zoom"
+              className="rounded-full border border-parchment/20 px-3 py-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-parchment/75 transition-colors hover:border-parchment/45"
+            >
+              {Math.round(zoom * 100)}% · reset
+            </button>
             <button
               type="button"
               onClick={() => setZoomIndex((i) => Math.min(ZOOM_STEPS.length - 1, i + 1))}
               disabled={zoomIndex === ZOOM_STEPS.length - 1}
               aria-label="Zoom in"
-              className="size-9 rounded-full border border-parchment/20 font-sans text-sm text-parchment/85 transition-colors hover:border-parchment/40 disabled:opacity-35"
+              className={iconCtrl}
             >
               +
             </button>
             <button
               type="button"
+              onClick={toggleTheme}
+              aria-label="Toggle light or dark reading mode"
+              className={iconCtrl}
+            >
+              {dark ? "☀" : "☾"}
+            </button>
+            <button
+              type="button"
               onClick={toggleFullScreen}
-              className="rounded-full border border-parchment/20 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-parchment/75 transition-colors hover:border-parchment/40"
+              className="rounded-full border border-parchment/20 px-3 py-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-parchment/75 transition-colors hover:border-parchment/45"
             >
               {isFullScreen ? "Exit full screen" : "Full screen"}
             </button>
           </div>
         </div>
       </div>
+
+      {showInfo ? (
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink/70 p-0 backdrop-blur-sm sm:items-center sm:p-6">
+          <div className="animate-rise max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-parchment/15 bg-water-deep p-6 sm:rounded-3xl">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-sand/70">
+                  {book.category} · {book.year}
+                </p>
+                <h2 className="mt-1 font-serif text-2xl font-semibold leading-tight text-parchment">
+                  {book.title}
+                </h2>
+                <p className="mt-1 font-sans text-sm text-parchment/60">{book.author}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowInfo(false)}
+                aria-label="Close book information"
+                className={iconCtrl}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="mt-4 font-sans text-sm leading-relaxed text-parchment/75">
+              {book.shortDescription}
+            </p>
+
+            <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+              {(
+                [
+                  ["Category", book.category],
+                  ["Length", book.pagesLabel],
+                  ["Pages in reader", `${total}`],
+                  ["Language", book.language],
+                ] as const
+              ).map(([label, value]) => (
+                <div key={label} className="border-b border-parchment/10 pb-2">
+                  <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-parchment/40">
+                    {label}
+                  </dt>
+                  <dd className="mt-1 font-sans text-sm text-parchment/80">{value}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <Link
+              to="/books/$bookId"
+              params={{ bookId: book.id }}
+              className="mt-6 inline-flex rounded-full bg-oxblood px-5 py-3 font-sans text-sm font-semibold text-parchment transition-colors hover:bg-oxblood/90"
+            >
+              Back to Book Details
+            </Link>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
