@@ -91,7 +91,7 @@ function Home() {
 
         <section className="animate-rise rounded-2xl border border-parchment/10 bg-glass/25 p-6 backdrop-blur-md [animation-delay:160ms]">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-parchment/40">
-            (b) the room
+            (c) the room
           </p>
           <h2 className="mt-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-parchment">
             A quiet place to read
