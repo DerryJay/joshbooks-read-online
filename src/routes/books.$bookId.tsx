@@ -1,6 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
+import { ProgressBar } from "@/components/ContinueReading";
+import { useSavedProgress } from "@/hooks/useReadingProgress";
+import { progressPercent } from "@/lib/reading-progress";
 import { getBook } from "@/data/books";
+
 
 export const Route = createFileRoute("/books/$bookId")({
   loader: ({ params }) => {
