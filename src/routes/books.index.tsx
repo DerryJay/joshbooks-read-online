@@ -89,9 +89,37 @@ function BooksPage() {
           </div>
         </section>
 
-        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-parchment/40">
-          {results.length} {results.length === 1 ? "volume" : "volumes"} shown
-        </p>
+        {query.trim() === "" && category === "All" ? (
+          <>
+            <section className="animate-rise pb-2">
+              <div className="mb-4">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-parchment/40">
+                  (b) picked for you
+                </p>
+                <h2 className="font-serif text-2xl font-semibold tracking-tight text-parchment">
+                  Featured books
+                </h2>
+              </div>
+              <div className="no-scrollbar flex gap-3 overflow-x-auto pb-2">
+                {featuredBooks.map((book) => (
+                  <ShelfCard key={book.id} book={book} />
+                ))}
+              </div>
+            </section>
+
+            <ContinueReading eyebrow="(c) recently opened" heading="Recently opened" />
+          </>
+        ) : null}
+
+        <div className="mt-2 flex items-end justify-between gap-3">
+          <h2 className="font-serif text-2xl font-semibold tracking-tight text-parchment">
+            All books
+          </h2>
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-parchment/40">
+            {results.length} {results.length === 1 ? "volume" : "volumes"} shown
+          </p>
+        </div>
+
 
         {results.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-parchment/10 bg-glass/25 p-6 backdrop-blur-md">
