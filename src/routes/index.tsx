@@ -25,7 +25,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const featured = books.slice(0, 4);
+  const featured = featuredBooks.slice(0, 4);
+
 
   return (
     <SiteLayout>
@@ -63,12 +64,16 @@ function Home() {
 
         <div className="h-px w-full bg-parchment/10" />
 
+        <ContinueReading eyebrow="(a) where you left off" heading="Continue reading" />
+
         <section className="animate-rise py-7 [animation-delay:80ms]">
+
           <div className="mb-4 flex items-end justify-between">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-parchment/40">
-                (a) on the shelf
+                (b) on the shelf
               </p>
+
               <h2 className="font-serif text-2xl font-semibold tracking-tight text-parchment">
                 Featured volumes
               </h2>
