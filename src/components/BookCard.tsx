@@ -27,19 +27,44 @@ export function ShelfCard({ book }: { book: Book }) {
   );
 }
 
-export function CatalogueCard({ book }: { book: Book }) {
+export function CatalogueCard({
+  book,
+  isFavorite = false,
+  onToggleFavorite,
+  progress,
+}: {
+  book: Book;
+  isFavorite?: boolean;
+  onToggleFavorite?: (bookId: string) => void;
+  progress?: { percent: number; page: number; totalPages: number } | null;
+}) {
   return (
     <article className="flex flex-col rounded-xl border border-parchment/10 bg-glass/30 p-3 backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1">
-      <Link to="/books/$bookId" params={{ bookId: book.id }}>
-        <img
-          src={book.cover}
-          alt={`Cover of ${book.title}`}
-          width={512}
-          height={768}
-          loading="lazy"
-          className="aspect-[2/3] w-full rounded-md object-cover outline-1 -outline-offset-1 outline-black/5"
-        />
-      </Link>
+      <div className="relative">
+        <Link to="/books/$bookId" params={{ bookId: book.id }}>
+          <img
+            src={book.cover}
+            alt={`Cover of ${book.title}`}
+            width={512}
+            height={768}
+            loading="lazy"
+            className="aspect-[2/3] w-full rounded-md object-cover outline-1 -outline-offset-1 outline-black/5"
+          />
+        </Link>
+        {onToggleFavorite ? (
+          <button
+            type="button"
+            onClick={() => onToggleFavorite(book.id)}
+            aria-pressed={isFavorite}
+            aria-label={isFavorite ? `Remove ${book.title} from favourites` : `Add ${book.title} to favourites`}
+            className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full border border-parchment/20 bg-ink/70 text-base backdrop-blur-sm transition-colors hover:border-sand/50"
+          >
+            <span aria-hidden="true" className={isFavorite ? "text-oxblood" : "text-parchment/70"}>
+              {isFavorite ? "♥" : "♡"}
+            </span>
+          </button>
+        ) : null}
+      </div>
       <h3 className="mt-3 font-serif text-lg font-semibold leading-tight text-parchment">
         {book.title}
       </h3>
