@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { Book } from "@/data/books";
+import { ProgressBar } from "@/components/ContinueReading";
 
 export function ShelfCard({ book }: { book: Book }) {
   return (
@@ -75,6 +76,14 @@ export function CatalogueCard({
       <p className="mt-2 font-sans text-xs leading-relaxed text-parchment/60">
         {book.shortDescription}
       </p>
+      {progress ? (
+        <div className="mt-3">
+          <ProgressBar percent={progress.percent} />
+          <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-sand/70">
+            {progress.percent}% · page {progress.page + 1} of {progress.totalPages}
+          </p>
+        </div>
+      ) : null}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Link
           to="/books/$bookId"
