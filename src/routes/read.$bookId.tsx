@@ -61,11 +61,18 @@ function Reader() {
     setTheme(readReaderTheme());
   }, []);
 
-  // Offer to resume where the visitor left off (localStorage, no account).
+  // Offer to resume where the visitor left off (localStorage, no account),
+  // and record the book as recently opened.
   useEffect(() => {
     if (!ready) return;
-    if (record && record.page > 0 && record.page < total) setShowResume(true);
-  }, [ready, record, total]);
+    if (record && record.page > 0 && record.page < total) {
+      setShowResume(true);
+    } else {
+      save(record?.page ?? 0, total);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
 
   const goTo = useCallback(
     (next: number) => {
@@ -211,7 +218,7 @@ function Reader() {
             ) : null}
             <div
               ref={pageRef}
-              className={`max-h-[66vh] overflow-y-auto rounded-2xl border px-5 py-8 shadow-2xl transition-colors duration-500 sm:px-10 sm:py-12 ${
+              className={`max-h-[66vh] min-h-[58vh] overflow-y-auto rounded-2xl border px-5 py-8 shadow-2xl transition-colors duration-500 sm:px-10 sm:py-12 ${
                 dark
                   ? "border-parchment/10 bg-ink text-parchment/90"
                   : "border-parchment/10 bg-parchment text-ink"
