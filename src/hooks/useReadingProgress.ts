@@ -27,6 +27,28 @@ export function useSavedProgress(bookId: string) {
   return { record, ready, save };
 }
 
+/** Every stored record keyed by book id (used for reading-status filters). */
+export function useAllProgress() {
+  const [records, setRecords] = useState<Record<string, ReadingRecord>>({});
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const sync = () => {
+      setRecords(readAllProgress());
+      setReady(true);
+    };
+    sync();
+    window.addEventListener("joshbooks:progress", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("joshbooks:progress", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
+  return { records, ready };
+}
+
 /** All stored records, newest first, kept in sync with other components. */
 export function useRecentlyOpened(limit = 4) {
   const [records, setRecords] = useState<ReadingRecord[]>([]);
