@@ -61,11 +61,18 @@ function Reader() {
     setTheme(readReaderTheme());
   }, []);
 
-  // Offer to resume where the visitor left off (localStorage, no account).
+  // Offer to resume where the visitor left off (localStorage, no account),
+  // and record the book as recently opened.
   useEffect(() => {
     if (!ready) return;
-    if (record && record.page > 0 && record.page < total) setShowResume(true);
-  }, [ready, record, total]);
+    if (record && record.page > 0 && record.page < total) {
+      setShowResume(true);
+    } else {
+      save(record?.page ?? 0, total);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
 
   const goTo = useCallback(
     (next: number) => {
