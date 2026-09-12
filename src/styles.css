@@ -15,6 +15,7 @@
   --color-oxblood: #7a2a34;
   --color-sand: #cdbfa2;
   --color-glass: #22505a;
+  --color-alert: #e9a79f;
 
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
   --animate-rise: rise 0.7s var(--ease) both;

@@ -5,23 +5,49 @@ import {
   saveProgress,
   type ReadingRecord,
 } from "@/lib/reading-progress";
+import { fetchProgress, upsertProgress } from "@/lib/user-data";
+import { useAuth } from "@/hooks/useAuth";
 
-/** Reads progress after hydration so server and client markup match. */
+/**
+ * Reading position for one book. Signed-in readers store it in their account so
+ * it follows them between devices; guests keep it in this browser.
+ */
 export function useSavedProgress(bookId: string) {
+  const { user, loading: authLoading } = useAuth();
   const [record, setRecord] = useState<ReadingRecord | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
+
+    if (user) {
+      let active = true;
+      setReady(false);
+      void fetchProgress().then((all) => {
+        if (!active) return;
+        setRecord(all[bookId] ?? null);
+        setReady(true);
+      });
+      return () => {
+        active = false;
+      };
+    }
+
     setRecord(readProgress(bookId));
     setReady(true);
-  }, [bookId]);
+    return;
+  }, [bookId, user, authLoading]);
 
   const save = useCallback(
     (page: number, totalPages: number) => {
-      saveProgress(bookId, page, totalPages);
       setRecord({ bookId, page, totalPages, updatedAt: Date.now() });
+      if (user) {
+        void upsertProgress(user.id, bookId, page, totalPages);
+        return;
+      }
+      saveProgress(bookId, page, totalPages);
     },
-    [bookId],
+    [bookId, user],
   );
 
   return { record, ready, save };
@@ -29,10 +55,26 @@ export function useSavedProgress(bookId: string) {
 
 /** Every stored record keyed by book id (used for reading-status filters). */
 export function useAllProgress() {
+  const { user, loading: authLoading } = useAuth();
   const [records, setRecords] = useState<Record<string, ReadingRecord>>({});
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
+
+    if (user) {
+      let active = true;
+      setReady(false);
+      void fetchProgress().then((all) => {
+        if (!active) return;
+        setRecords(all);
+        setReady(true);
+      });
+      return () => {
+        active = false;
+      };
+    }
+
     const sync = () => {
       setRecords(readAllProgress());
       setReady(true);
@@ -44,33 +86,16 @@ export function useAllProgress() {
       window.removeEventListener("joshbooks:progress", sync);
       window.removeEventListener("storage", sync);
     };
-  }, []);
+  }, [user, authLoading]);
 
   return { records, ready };
 }
 
-/** All stored records, newest first, kept in sync with other components. */
+/** All stored records, newest first. */
 export function useRecentlyOpened(limit = 4) {
-  const [records, setRecords] = useState<ReadingRecord[]>([]);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const sync = () => {
-      setRecords(
-        Object.values(readAllProgress())
-          .sort((a, b) => b.updatedAt - a.updatedAt)
-          .slice(0, limit),
-      );
-      setReady(true);
-    };
-    sync();
-    window.addEventListener("joshbooks:progress", sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      window.removeEventListener("joshbooks:progress", sync);
-      window.removeEventListener("storage", sync);
-    };
-  }, [limit]);
-
-  return { records, ready };
+  const { records, ready } = useAllProgress();
+  const sorted = Object.values(records)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, limit);
+  return { records: sorted, ready };
 }
