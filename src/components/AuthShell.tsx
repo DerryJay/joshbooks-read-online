@@ -12,7 +12,7 @@ export const authPrimary =
 
 export function FieldError({ children }: { children?: string | null }) {
   if (!children) return null;
-  return <p className="mt-1.5 font-sans text-xs text-oxblood-bright/90 text-red-300">{children}</p>;
+  return <p className="mt-1.5 font-sans text-xs text-alert">{children}</p>;
 }
 
 /** Shared frame for the sign-in, sign-up and password pages. */
