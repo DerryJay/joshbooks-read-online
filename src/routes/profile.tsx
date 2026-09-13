@@ -106,7 +106,7 @@ function ProfilePage() {
     navigate({ to: "/", replace: true });
   };
 
-  const joined = profile?.created_at ?? user.created_at;
+  const joined = user.created_at;
 
   return (
     <SiteLayout>
