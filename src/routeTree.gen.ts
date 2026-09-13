@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LibraryRouteImport } from './routes/library'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as BooksIndexRouteImport } from './routes/books.index'
@@ -34,9 +36,19 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -69,7 +81,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/books/$bookId': typeof BooksBookIdRoute
@@ -80,7 +94,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/books/$bookId': typeof BooksBookIdRoute
@@ -92,7 +108,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/books/$bookId': typeof BooksBookIdRoute
@@ -105,7 +123,9 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/forgot-password'
+    | '/library'
     | '/login'
+    | '/profile'
     | '/reset-password'
     | '/signup'
     | '/books/$bookId'
@@ -116,7 +136,9 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/forgot-password'
+    | '/library'
     | '/login'
+    | '/profile'
     | '/reset-password'
     | '/signup'
     | '/books/$bookId'
@@ -127,7 +149,9 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/forgot-password'
+    | '/library'
     | '/login'
+    | '/profile'
     | '/reset-password'
     | '/signup'
     | '/books/$bookId'
@@ -139,7 +163,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
+  ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   BooksBookIdRoute: typeof BooksBookIdRoute
@@ -170,11 +196,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -219,7 +259,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
+  ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   BooksBookIdRoute: BooksBookIdRoute,

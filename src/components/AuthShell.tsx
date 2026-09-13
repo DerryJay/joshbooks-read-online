@@ -10,7 +10,7 @@ export const authLabel =
 export const authPrimary =
   "w-full rounded-full bg-oxblood px-6 py-3.5 font-sans text-sm font-semibold text-parchment transition-colors hover:bg-oxblood/90 disabled:opacity-50";
 
-export function FieldError({ children }: { children?: string | null }) {
+export function FieldError({ children }: { children?: string | null | undefined }) {
   if (!children) return null;
   return <p className="mt-1.5 font-sans text-xs text-alert">{children}</p>;
 }
