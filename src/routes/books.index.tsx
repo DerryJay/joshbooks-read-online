@@ -4,7 +4,7 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { CatalogueCard, ShelfCard } from "@/components/BookCard";
 import { ContinueReading } from "@/components/ContinueReading";
 import { BookFilters } from "@/components/BookFilters";
-import { featuredBooks } from "@/data/books";
+import { useCatalogue } from "@/hooks/useCatalogue";
 import { useAllProgress } from "@/hooks/useReadingProgress";
 import { useFavorites } from "@/hooks/useFavorites";
 import { progressPercent } from "@/lib/reading-progress";
@@ -35,6 +35,8 @@ export const Route = createFileRoute("/books/")({
   component: BooksPage,
 });
 
+const PAGE_SIZE = 12;
+
 function BooksPage() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState<Filters>(defaultFilters);
@@ -43,18 +45,23 @@ function BooksPage() {
 
   const { records } = useAllProgress();
   const { ids: favorites, toggle } = useFavorites();
+  const { books, featuredBooks, loading: catalogueLoading, error: catalogueError, retry } = useCatalogue();
+  const [visible, setVisible] = useState(PAGE_SIZE);
 
-  const patch = (next: Partial<Filters>) => setFilters((prev) => ({ ...prev, ...next }));
+  const patch = (next: Partial<Filters>) => {
+    setFilters((prev) => ({ ...prev, ...next }));
+    setVisible(PAGE_SIZE);
+  };
   const clear = () => {
     setFilters(defaultFilters);
     setShowSuggestions(false);
   };
 
   const results = useMemo(
-    () => filterAndSortBooks(filters, records, favorites),
-    [filters, records, favorites],
+    () => filterAndSortBooks(books, filters, records, favorites),
+    [books, filters, records, favorites],
   );
-  const suggestions = useMemo(() => buildSuggestions(filters.query), [filters.query]);
+  const suggestions = useMemo(() => buildSuggestions(books, filters.query), [books, filters.query]);
   const filtered = isFiltered(filters);
 
   return (

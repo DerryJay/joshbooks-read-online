@@ -6,7 +6,7 @@ import { useAuth, displayName } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useAllProgress } from "@/hooks/useReadingProgress";
 import { useBookmarks } from "@/hooks/useBookmarks";
-import { getBook, books } from "@/data/books";
+import { useCatalogue } from "@/hooks/useCatalogue";
 import { progressPercent } from "@/lib/reading-progress";
 
 export const Route = createFileRoute("/library")({
@@ -88,6 +88,7 @@ function LibraryContent({ name }: { name: string }) {
   const { ids: favorites, toggle } = useFavorites();
   const { records } = useAllProgress();
   const { bookmarks } = useBookmarks();
+  const { getBook, books } = useCatalogue();
 
   const favoriteBooks = favorites
     .map((id) => getBook(id))
@@ -135,7 +136,7 @@ function LibraryContent({ name }: { name: string }) {
             <div className="grid gap-3 sm:grid-cols-2">
               {reading.map(({ record, book }) => {
                 if (!book) return null;
-                const percent = progressPercent(record.page, record.totalPages || book.pages.length);
+                const percent = progressPercent(record.page, record.totalPages || book.pageCount);
                 return (
                   <article
                     key={book.id}
@@ -160,7 +161,7 @@ function LibraryContent({ name }: { name: string }) {
                         <ProgressBar percent={percent} />
                         <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-sand/80">
                           {percent}% · page {record.page + 1} of{" "}
-                          {record.totalPages || book.pages.length}
+                          {record.totalPages || book.pageCount}
                         </p>
                       </div>
                       <Link
