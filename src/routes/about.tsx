@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
-import { books } from "@/data/books";
+import { useCatalogue } from "@/hooks/useCatalogue";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
