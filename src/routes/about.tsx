@@ -22,6 +22,7 @@ export const Route = createFileRoute("/about")({
 });
 
 function AboutPage() {
+  const { books } = useCatalogue();
   return (
     <SiteLayout>
       <main className="mx-auto max-w-[420px] px-5 pb-16 md:max-w-3xl">
