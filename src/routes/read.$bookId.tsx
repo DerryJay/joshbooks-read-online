@@ -2,6 +2,8 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { bookQuery } from "@/lib/catalogue";
 import { useSavedProgress } from "@/hooks/useReadingProgress";
+import { useBookmarks } from "@/hooks/useBookmarks";
+import { z } from "zod";
 import {
   progressPercent,
   readReaderTheme,
@@ -10,6 +12,8 @@ import {
 } from "@/lib/reading-progress";
 
 export const Route = createFileRoute("/read/$bookId")({
+  validateSearch: (search) =>
+    z.object({ page: z.coerce.number().int().min(1).optional().catch(undefined) }).parse(search),
   loader: async ({ params, context }) => {
     const book = await context.queryClient.ensureQueryData(bookQuery(params.bookId));
     if (!book) throw notFound();
@@ -79,8 +83,18 @@ function Reader() {
 
   // Offer to resume where the visitor left off (localStorage, no account),
   // and record the book as recently opened.
+  const { page: requestedPage } = Route.useSearch();
+  const { has: isBookmarked, add: addBookmark, remove: removeBookmark } = useBookmarks(book.id);
+  const bookmarked = isBookmarked(page);
+
   useEffect(() => {
     if (!ready) return;
+    if (requestedPage) {
+      const target = Math.min(requestedPage - 1, total - 1);
+      setPage(target);
+      save(target, total);
+      return;
+    }
     if (record && record.page > 0 && record.page < total) {
       setShowResume(true);
     } else {
@@ -307,6 +321,15 @@ function Reader() {
               className={iconCtrl}
             >
               +
+            </button>
+            <button
+              type="button"
+              onClick={() => void (bookmarked ? removeBookmark(page) : addBookmark(page))}
+              aria-pressed={bookmarked}
+              aria-label={bookmarked ? "Remove bookmark from this page" : "Bookmark this page"}
+              className={`${iconCtrl} ${bookmarked ? "border-sand/60 text-sand" : ""}`}
+            >
+              {bookmarked ? "★" : "☆"}
             </button>
             <button
               type="button"

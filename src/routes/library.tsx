@@ -87,7 +87,7 @@ function LibraryPage() {
 function LibraryContent({ name }: { name: string }) {
   const { ids: favorites, toggle } = useFavorites();
   const { records } = useAllProgress();
-  const { bookmarks } = useBookmarks();
+  const { bookmarks, remove: removeBookmark } = useBookmarks();
   const { getBook, books } = useCatalogue();
 
   const favoriteBooks = favorites
@@ -100,9 +100,9 @@ function LibraryContent({ name }: { name: string }) {
     .filter((item) => Boolean(item.book));
 
   const bookmarkGroups = Object.values(
-    bookmarks.reduce<Record<string, { bookId: string; pages: number[] }>>((acc, mark) => {
-      const entry = acc[mark.bookId] ?? { bookId: mark.bookId, pages: [] };
-      entry.pages.push(mark.page);
+    bookmarks.reduce<Record<string, { bookId: string; marks: typeof bookmarks }>>((acc, mark) => {
+      const entry = acc[mark.bookId] ?? { bookId: mark.bookId, marks: [] };
+      entry.marks.push(mark);
       acc[mark.bookId] = entry;
       return acc;
     }, {}),
@@ -233,16 +233,43 @@ function LibraryContent({ name }: { name: string }) {
                     <h3 className="font-serif text-lg font-semibold leading-tight text-parchment">
                       {book.title}
                     </h3>
-                    <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-sand/75">
-                      Saved pages: {group.pages.sort((a, b) => a - b).map((p) => p + 1).join(", ")}
-                    </p>
-                    <Link
-                      to="/read/$bookId"
-                      params={{ bookId: book.id }}
-                      className="mt-3 inline-flex rounded-full border border-parchment/20 px-4 py-2 font-sans text-xs font-medium text-parchment/80 transition-colors hover:border-sand/50"
-                    >
-                      Open reader
-                    </Link>
+                    <ul className="mt-3 space-y-2">
+                      {group.marks
+                        .sort((a, b) => a.page - b.page)
+                        .map((mark) => (
+                          <li
+                            key={mark.id}
+                            className="flex items-center justify-between gap-2 border-t border-parchment/10 pt-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-sand/80">
+                                Page {mark.page + 1} · {new Date(mark.createdAt).toLocaleDateString()}
+                              </p>
+                              {mark.note ? (
+                                <p className="truncate font-sans text-xs text-parchment/60">{mark.note}</p>
+                              ) : null}
+                            </div>
+                            <div className="flex shrink-0 gap-2">
+                              <Link
+                                to="/read/$bookId"
+                                params={{ bookId: book.id }}
+                                search={{ page: mark.page + 1 }}
+                                className="rounded-full border border-parchment/20 px-3 py-1.5 font-sans text-xs text-parchment/80 transition-colors hover:border-sand/50"
+                              >
+                                Open
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => void removeBookmark(mark.page, mark.bookId)}
+                                aria-label={`Delete bookmark on page ${mark.page + 1}`}
+                                className="rounded-full border border-parchment/20 px-3 py-1.5 font-sans text-xs text-parchment/60 transition-colors hover:border-alert/50 hover:text-alert"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                    </ul>
                   </li>
                 );
               })}
