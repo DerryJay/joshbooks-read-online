@@ -5,7 +5,14 @@ import {
   readLocalBookmarks,
   removeLocalBookmark,
 } from "@/lib/bookmarks";
-import { addBookmark, fetchBookmarks, removeBookmark, type Bookmark } from "@/lib/user-data";
+import { toast } from "sonner";
+import {
+  addBookmark,
+  fetchBookmarks,
+  friendlyMessage,
+  removeBookmark,
+  type Bookmark,
+} from "@/lib/user-data";
 import { useAuth } from "@/hooks/useAuth";
 
 /** Saved pages for one book (or the whole library when bookId is omitted). */
@@ -16,7 +23,11 @@ export function useBookmarks(bookId?: string) {
 
   const reload = useCallback(async () => {
     if (user) {
-      setBookmarks(await fetchBookmarks(bookId));
+      try {
+        setBookmarks(await fetchBookmarks(bookId));
+      } catch (error) {
+        toast.error(friendlyMessage(error, "We couldn't load your bookmarks."));
+      }
     } else {
       setBookmarks(readLocalBookmarks(bookId));
     }
@@ -42,7 +53,12 @@ export function useBookmarks(bookId?: string) {
     async (page: number, note?: string) => {
       if (!bookId) return;
       if (user) {
-        await addBookmark(user.id, bookId, page, note);
+        try {
+          await addBookmark(bookId, page, note);
+          toast.success(`Bookmarked page ${page + 1}.`);
+        } catch (error) {
+          toast.error(friendlyMessage(error, "We couldn't save this bookmark."));
+        }
         await reload();
         return;
       }
@@ -52,14 +68,19 @@ export function useBookmarks(bookId?: string) {
   );
 
   const remove = useCallback(
-    async (page: number) => {
-      if (!bookId) return;
+    async (page: number, targetBookId?: string) => {
+      const id = targetBookId ?? bookId;
+      if (!id) return;
       if (user) {
-        await removeBookmark(user.id, bookId, page);
+        try {
+          await removeBookmark(id, page);
+        } catch (error) {
+          toast.error(friendlyMessage(error, "We couldn't delete this bookmark."));
+        }
         await reload();
         return;
       }
-      removeLocalBookmark(bookId, page);
+      removeLocalBookmark(id, page);
     },
     [bookId, user, reload],
   );

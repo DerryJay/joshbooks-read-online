@@ -5,7 +5,8 @@ import {
   saveProgress,
   type ReadingRecord,
 } from "@/lib/reading-progress";
-import { fetchProgress, upsertProgress } from "@/lib/user-data";
+import { toast } from "sonner";
+import { fetchProgress, friendlyMessage, upsertProgress } from "@/lib/user-data";
 import { useAuth } from "@/hooks/useAuth";
 
 /**
@@ -23,11 +24,14 @@ export function useSavedProgress(bookId: string) {
     if (user) {
       let active = true;
       setReady(false);
-      void fetchProgress().then((all) => {
-        if (!active) return;
-        setRecord(all[bookId] ?? null);
-        setReady(true);
-      });
+      fetchProgress()
+        .then((all) => {
+          if (active) setRecord(all[bookId] ?? null);
+        })
+        .catch((error) => toast.error(friendlyMessage(error, "We couldn't load your reading progress.")))
+        .finally(() => {
+          if (active) setReady(true);
+        });
       return () => {
         active = false;
       };
@@ -42,7 +46,11 @@ export function useSavedProgress(bookId: string) {
     (page: number, totalPages: number) => {
       setRecord({ bookId, page, totalPages, updatedAt: Date.now() });
       if (user) {
-        void upsertProgress(user.id, bookId, page, totalPages);
+        upsertProgress(bookId, page, totalPages).catch((error) => {
+          toast.error(friendlyMessage(error, "We couldn't save your reading progress."), {
+            id: "progress-save",
+          });
+        });
         return;
       }
       saveProgress(bookId, page, totalPages);
@@ -65,11 +73,16 @@ export function useAllProgress() {
     if (user) {
       let active = true;
       setReady(false);
-      void fetchProgress().then((all) => {
-        if (!active) return;
-        setRecords(all);
-        setReady(true);
-      });
+      fetchProgress()
+        .then((all) => {
+          if (active) setRecords(all);
+        })
+        .catch(() => {
+          /* the catalogue still works without progress; the reader reports save errors */
+        })
+        .finally(() => {
+          if (active) setReady(true);
+        });
       return () => {
         active = false;
       };

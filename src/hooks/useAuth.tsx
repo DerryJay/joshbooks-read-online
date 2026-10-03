@@ -10,7 +10,12 @@ import {
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type Profile = { id: string; full_name: string | null; email: string | null };
+export type Profile = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+};
 
 type AuthValue = {
   user: User | null;
@@ -55,8 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadProfile = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("id, full_name, email")
-      .eq("id", userId)
+      .select("id, full_name, email, avatar_url")
+      .eq("user_id", userId)
       .maybeSingle();
     setProfile(data ?? null);
   }, []);
