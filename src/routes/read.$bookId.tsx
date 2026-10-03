@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getBook } from "@/data/books";
+import { bookQuery } from "@/lib/catalogue";
 import { useSavedProgress } from "@/hooks/useReadingProgress";
 import {
   progressPercent,
@@ -10,11 +10,27 @@ import {
 } from "@/lib/reading-progress";
 
 export const Route = createFileRoute("/read/$bookId")({
-  loader: ({ params }) => {
-    const book = getBook(params.bookId);
+  loader: async ({ params, context }) => {
+    const book = await context.queryClient.ensureQueryData(bookQuery(params.bookId));
     if (!book) throw notFound();
     return { book };
   },
+  errorComponent: ({ reset }) => (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-water-deep px-6 text-center text-parchment">
+      <h1 className="font-serif text-3xl font-semibold">We couldn't load this book.</h1>
+      <p className="font-sans text-sm text-parchment/65">Please check your connection and try again.</p>
+      <div className="flex gap-3">
+        <button type="button" onClick={reset} className="rounded-full bg-oxblood px-5 py-3 font-sans text-sm font-semibold">Try again</button>
+        <Link to="/books" className="rounded-full border border-parchment/25 px-5 py-3 font-sans text-sm">Back to Books</Link>
+      </div>
+    </div>
+  ),
+  notFoundComponent: () => (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-water-deep px-6 text-center text-parchment">
+      <h1 className="font-serif text-3xl font-semibold">This book isn't on the shelf.</h1>
+      <Link to="/books" className="rounded-full bg-oxblood px-5 py-3 font-sans text-sm font-semibold">Browse all books</Link>
+    </div>
+  ),
   head: ({ loaderData }) => {
     if (!loaderData) {
       return {
@@ -52,7 +68,7 @@ function Reader() {
   const shellRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
 
-  const total = book.pages.length;
+  const total = book.pages.length || book.pageCount || 1;
   const zoom = ZOOM_STEPS[zoomIndex] ?? 1;
   const percent = progressPercent(page, total);
   const dark = theme === "dark";
