@@ -1,11 +1,12 @@
 import {
-  authors,
+  authorsOf,
   readingStatusOptions,
   sortOptions,
-  yearBounds,
+  yearBoundsOf,
   type Filters,
 } from "@/lib/catalogue-filters";
-import { categories } from "@/data/books";
+import { useCatalogue } from "@/hooks/useCatalogue";
+import { useMemo } from "react";
 
 const fieldClass =
   "w-full rounded-lg border border-parchment/15 bg-ink/40 px-3 py-2.5 font-sans text-sm text-parchment outline-none transition-colors focus:border-sand/50";
@@ -24,6 +25,9 @@ export function BookFilters({
   onClear: () => void;
   showClear: boolean;
 }) {
+  const { books, categories } = useCatalogue();
+  const authors = useMemo(() => authorsOf(books), [books]);
+  const yearBounds = useMemo(() => yearBoundsOf(books), [books]);
   return (
     <div className="space-y-4">
       <div>

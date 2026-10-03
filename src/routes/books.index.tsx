@@ -4,7 +4,7 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { CatalogueCard, ShelfCard } from "@/components/BookCard";
 import { ContinueReading } from "@/components/ContinueReading";
 import { BookFilters } from "@/components/BookFilters";
-import { featuredBooks } from "@/data/books";
+import { useCatalogue } from "@/hooks/useCatalogue";
 import { useAllProgress } from "@/hooks/useReadingProgress";
 import { useFavorites } from "@/hooks/useFavorites";
 import { progressPercent } from "@/lib/reading-progress";
@@ -35,6 +35,8 @@ export const Route = createFileRoute("/books/")({
   component: BooksPage,
 });
 
+const PAGE_SIZE = 12;
+
 function BooksPage() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState<Filters>(defaultFilters);
@@ -43,18 +45,24 @@ function BooksPage() {
 
   const { records } = useAllProgress();
   const { ids: favorites, toggle } = useFavorites();
+  const { books, featuredBooks, loading: catalogueLoading, error: catalogueError, retry } = useCatalogue();
+  const [visible, setVisible] = useState(PAGE_SIZE);
 
-  const patch = (next: Partial<Filters>) => setFilters((prev) => ({ ...prev, ...next }));
+  const patch = (next: Partial<Filters>) => {
+    setFilters((prev) => ({ ...prev, ...next }));
+    setVisible(PAGE_SIZE);
+  };
   const clear = () => {
     setFilters(defaultFilters);
+    setVisible(PAGE_SIZE);
     setShowSuggestions(false);
   };
 
   const results = useMemo(
-    () => filterAndSortBooks(filters, records, favorites),
-    [filters, records, favorites],
+    () => filterAndSortBooks(books, filters, records, favorites),
+    [books, filters, records, favorites],
   );
-  const suggestions = useMemo(() => buildSuggestions(filters.query), [filters.query]);
+  const suggestions = useMemo(() => buildSuggestions(books, filters.query), [books, filters.query]);
   const filtered = isFiltered(filters);
 
   return (
@@ -180,7 +188,29 @@ function BooksPage() {
               </p>
             </div>
 
-            {results.length === 0 ? (
+            {catalogueLoading ? (
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="h-72 animate-pulse rounded-2xl bg-parchment/5" />
+                ))}
+              </div>
+            ) : catalogueError ? (
+              <div className="mt-4 rounded-2xl border border-parchment/10 bg-glass/25 p-6 backdrop-blur-md">
+                <h3 className="font-serif text-xl font-semibold text-parchment">
+                  We couldn't load the catalogue.
+                </h3>
+                <p className="mt-2 font-sans text-sm text-parchment/65">
+                  Please check your connection and try again.
+                </p>
+                <button
+                  type="button"
+                  onClick={retry}
+                  className="mt-4 rounded-full border border-sand/40 px-4 py-2.5 font-sans text-xs font-semibold uppercase tracking-[0.12em] text-sand transition-colors hover:bg-sand/10"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : results.length === 0 ? (
               <div className="mt-4 rounded-2xl border border-parchment/10 bg-glass/25 p-6 backdrop-blur-md">
                 <h3 className="font-serif text-xl font-semibold text-parchment">No books found.</h3>
                 <p className="mt-2 font-sans text-sm text-parchment/65">
@@ -196,7 +226,7 @@ function BooksPage() {
               </div>
             ) : (
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {results.map((book) => {
+                {results.slice(0, visible).map((book) => {
                   const record = records[book.id];
                   return (
                     <CatalogueCard
@@ -218,6 +248,17 @@ function BooksPage() {
                 })}
               </div>
             )}
+            {!catalogueLoading && results.length > visible ? (
+              <div className="mt-6 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setVisible((v) => v + PAGE_SIZE)}
+                  className="rounded-full border border-parchment/25 px-6 py-3 font-sans text-sm font-medium text-parchment/85 transition-colors hover:border-sand/50"
+                >
+                  Show more books ({results.length - visible} more)
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </main>

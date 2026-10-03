@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useRecentlyOpened } from "@/hooks/useReadingProgress";
-import { getBook } from "@/data/books";
+import { useCatalogue } from "@/hooks/useCatalogue";
 import { progressPercent } from "@/lib/reading-progress";
 
 export function ProgressBar({ percent }: { percent: number }) {
@@ -35,6 +35,7 @@ export function ContinueReading({
   eyebrow?: string;
 }) {
   const { records, ready } = useRecentlyOpened(limit);
+  const { getBook } = useCatalogue();
 
   const items = records
     .map((record) => ({ record, book: getBook(record.bookId) }))
@@ -59,7 +60,7 @@ export function ContinueReading({
 
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map(({ record, book }) => {
-          const percent = progressPercent(record.page, record.totalPages || book.pages.length);
+          const percent = progressPercent(record.page, record.totalPages || book.pageCount);
           return (
             <article
               key={book.id}
@@ -83,7 +84,7 @@ export function ContinueReading({
                 <div className="mt-2">
                   <ProgressBar percent={percent} />
                   <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-sand/80">
-                    {percent}% · page {record.page + 1} of {record.totalPages || book.pages.length}
+                    {percent}% · page {record.page + 1} of {record.totalPages || book.pageCount}
                   </p>
                 </div>
                 <Link

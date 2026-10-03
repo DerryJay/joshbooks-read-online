@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { ShelfCard } from "@/components/BookCard";
 import { ContinueReading } from "@/components/ContinueReading";
-import { books, featuredBooks } from "@/data/books";
+import { useCatalogue } from "@/hooks/useCatalogue";
 
 
 export const Route = createFileRoute("/")({
@@ -25,6 +25,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const { books, featuredBooks } = useCatalogue();
   const featured = featuredBooks.slice(0, 4);
 
 

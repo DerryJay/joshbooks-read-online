@@ -1,7 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getBook } from "@/data/books";
+import { bookQuery } from "@/lib/catalogue";
 import { useSavedProgress } from "@/hooks/useReadingProgress";
+import { useBookmarks } from "@/hooks/useBookmarks";
+import { z } from "zod";
 import {
   progressPercent,
   readReaderTheme,
@@ -10,11 +12,29 @@ import {
 } from "@/lib/reading-progress";
 
 export const Route = createFileRoute("/read/$bookId")({
-  loader: ({ params }) => {
-    const book = getBook(params.bookId);
+  validateSearch: (search) =>
+    z.object({ page: z.coerce.number().int().min(1).optional().catch(undefined) }).parse(search),
+  loader: async ({ params, context }) => {
+    const book = await context.queryClient.ensureQueryData(bookQuery(params.bookId));
     if (!book) throw notFound();
     return { book };
   },
+  errorComponent: ({ reset }) => (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-water-deep px-6 text-center text-parchment">
+      <h1 className="font-serif text-3xl font-semibold">We couldn't load this book.</h1>
+      <p className="font-sans text-sm text-parchment/65">Please check your connection and try again.</p>
+      <div className="flex gap-3">
+        <button type="button" onClick={reset} className="rounded-full bg-oxblood px-5 py-3 font-sans text-sm font-semibold">Try again</button>
+        <Link to="/books" className="rounded-full border border-parchment/25 px-5 py-3 font-sans text-sm">Back to Books</Link>
+      </div>
+    </div>
+  ),
+  notFoundComponent: () => (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-water-deep px-6 text-center text-parchment">
+      <h1 className="font-serif text-3xl font-semibold">This book isn't on the shelf.</h1>
+      <Link to="/books" className="rounded-full bg-oxblood px-5 py-3 font-sans text-sm font-semibold">Browse all books</Link>
+    </div>
+  ),
   head: ({ loaderData }) => {
     if (!loaderData) {
       return {
@@ -52,7 +72,7 @@ function Reader() {
   const shellRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
 
-  const total = book.pages.length;
+  const total = book.pages.length || book.pageCount || 1;
   const zoom = ZOOM_STEPS[zoomIndex] ?? 1;
   const percent = progressPercent(page, total);
   const dark = theme === "dark";
@@ -63,8 +83,18 @@ function Reader() {
 
   // Offer to resume where the visitor left off (localStorage, no account),
   // and record the book as recently opened.
+  const { page: requestedPage } = Route.useSearch();
+  const { has: isBookmarked, add: addBookmark, remove: removeBookmark } = useBookmarks(book.id);
+  const bookmarked = isBookmarked(page);
+
   useEffect(() => {
     if (!ready) return;
+    if (requestedPage) {
+      const target = Math.min(requestedPage - 1, total - 1);
+      setPage(target);
+      save(target, total);
+      return;
+    }
     if (record && record.page > 0 && record.page < total) {
       setShowResume(true);
     } else {
@@ -291,6 +321,15 @@ function Reader() {
               className={iconCtrl}
             >
               +
+            </button>
+            <button
+              type="button"
+              onClick={() => void (bookmarked ? removeBookmark(page) : addBookmark(page))}
+              aria-pressed={bookmarked}
+              aria-label={bookmarked ? "Remove bookmark from this page" : "Bookmark this page"}
+              className={`${iconCtrl} ${bookmarked ? "border-sand/60 text-sand" : ""}`}
+            >
+              {bookmarked ? "★" : "☆"}
             </button>
             <button
               type="button"

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import type { Book } from "@/data/books";
+import type { Book } from "@/lib/catalogue";
 import { ProgressBar } from "@/components/ContinueReading";
 
 export function ShelfCard({ book }: { book: Book }) {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { FAVORITES_EVENT, readFavorites, toggleFavorite } from "@/lib/favorites";
-import { addFavorite, fetchFavorites, removeFavorite } from "@/lib/user-data";
+import { toast } from "sonner";
+import { addFavorite, fetchFavorites, friendlyMessage, removeFavorite } from "@/lib/user-data";
 import { useAuth } from "@/hooks/useAuth";
 
 /**
@@ -18,11 +19,14 @@ export function useFavorites() {
     if (user) {
       let active = true;
       setReady(false);
-      void fetchFavorites().then((cloud) => {
-        if (!active) return;
-        setIds(cloud);
-        setReady(true);
-      });
+      fetchFavorites()
+        .then((cloud) => {
+          if (active) setIds(cloud);
+        })
+        .catch((error) => toast.error(friendlyMessage(error, "We couldn't load your favourites.")))
+        .finally(() => {
+          if (active) setReady(true);
+        });
       return () => {
         active = false;
       };
@@ -46,7 +50,11 @@ export function useFavorites() {
       if (user) {
         const isOn = ids.includes(bookId);
         setIds((prev) => (isOn ? prev.filter((id) => id !== bookId) : [...prev, bookId]));
-        void (isOn ? removeFavorite(user.id, bookId) : addFavorite(user.id, bookId));
+        (isOn ? removeFavorite(bookId) : addFavorite(bookId)).catch((error) => {
+          // Roll back the optimistic change so the heart reflects what was saved.
+          setIds((prev) => (isOn ? [...prev, bookId] : prev.filter((id) => id !== bookId)));
+          toast.error(friendlyMessage(error, "We couldn't update your favourites."));
+        });
         return;
       }
       setIds(toggleFavorite(bookId));
