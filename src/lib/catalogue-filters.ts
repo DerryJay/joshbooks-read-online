@@ -2,7 +2,7 @@
  * Search, filter and sort logic for the books catalogue.
  * Pure functions so the UI stays declarative and the rules stay testable.
  */
-import { books, type Book } from "@/data/books";
+import type { Book } from "@/lib/catalogue";
 import type { ReadingRecord } from "@/lib/reading-progress";
 
 export type ReadingStatus = "all" | "unread" | "reading" | "completed";
@@ -53,16 +53,14 @@ export const defaultFilters: Filters = {
   sort: "title-asc",
 };
 
-export const authors = ["All", ...Array.from(new Set(books.map((b) => b.author))).sort()];
+export function authorsOf(books: Book[]) {
+  return ["All", ...Array.from(new Set(books.map((b) => b.author))).sort()];
+}
 
-export const catalogueYears = books
-  .map((b) => bookYear(b))
-  .filter((year): year is number => year !== null);
-
-export const yearBounds = {
-  min: catalogueYears.length ? Math.min(...catalogueYears) : 0,
-  max: catalogueYears.length ? Math.max(...catalogueYears) : 0,
-};
+export function yearBoundsOf(books: Book[]) {
+  const years = books.map((b) => bookYear(b)).filter((y): y is number => y !== null);
+  return { min: years.length ? Math.min(...years) : 0, max: years.length ? Math.max(...years) : 0 };
+}
 
 export function bookYear(book: Book): number | null {
   const match = book.year.match(/\d{3,4}/);
@@ -75,7 +73,7 @@ export function readingStatusOf(
 ): Exclude<ReadingStatus, "all"> {
   const record = records[book.id];
   if (!record) return "unread";
-  const total = record.totalPages || book.pages.length;
+  const total = record.totalPages || book.pageCount;
   return record.page >= total - 1 ? "completed" : "reading";
 }
 
@@ -93,6 +91,7 @@ export function isFiltered(filters: Filters) {
 }
 
 export function filterAndSortBooks(
+  books: Book[],
   filters: Filters,
   records: Record<string, ReadingRecord>,
   favorites: string[],
@@ -144,7 +143,7 @@ export function filterAndSortBooks(
 
 export type Suggestion = { kind: "book" | "author" | "category"; label: string; bookId?: string };
 
-export function buildSuggestions(query: string, limit = 6): Suggestion[] {
+export function buildSuggestions(books: Book[], query: string, limit = 6): Suggestion[] {
   const q = query.trim().toLowerCase();
   if (q.length < 2) return [];
   const out: Suggestion[] = [];
