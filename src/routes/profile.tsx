@@ -89,7 +89,8 @@ function ProfilePage() {
     setBusy(true);
     const { error } = await supabase
       .from("profiles")
-      .upsert({ id: user.id, full_name: name.trim(), email: user.email ?? null });
+      .update({ full_name: name.trim() })
+      .eq("id", user.id);
     if (!error) await supabase.auth.updateUser({ data: { full_name: name.trim() } });
     setBusy(false);
 
@@ -150,6 +151,8 @@ function ProfilePage() {
           </p>
         </section>
 
+        <AvatarSection userId={user.id} path={profile?.avatar_url ?? null} onSaved={refreshProfile} />
+
         <section className="animate-rise mt-6 rounded-2xl border border-parchment/10 bg-glass/25 p-6 backdrop-blur-md">
           <h2 className="font-serif text-xl font-semibold text-parchment">Update your name</h2>
           <form onSubmit={save} noValidate className="mt-4 space-y-4">
@@ -199,5 +202,95 @@ function ProfilePage() {
         </section>
       </main>
     </SiteLayout>
+  );
+}
+
+const AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+function AvatarSection({
+  userId,
+  path,
+  onSaved,
+}: {
+  userId: string;
+  path: string | null;
+  onSaved: () => Promise<void>;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!path) {
+      setUrl(null);
+      return;
+    }
+    void supabase.storage
+      .from("avatars")
+      .createSignedUrl(path, 3600)
+      .then(({ data }) => {
+        if (active) setUrl(data?.signedUrl ?? null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [path]);
+
+  const upload = async (file: File) => {
+    setMessage(null);
+    if (!AVATAR_TYPES.includes(file.type)) {
+      setMessage({ ok: false, text: "Please choose a JPG, PNG or WebP image." });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage({ ok: false, text: "Please choose an image under 2 MB." });
+      return;
+    }
+    setBusy(true);
+    const ext = file.type.split("/")[1];
+    const objectPath = `${userId}/avatar-${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(objectPath, file, { upsert: true, contentType: file.type });
+    const { error } = uploadError
+      ? { error: uploadError }
+      : await supabase.from("profiles").update({ avatar_url: objectPath }).eq("id", userId);
+    setBusy(false);
+    if (error) {
+      setMessage({ ok: false, text: "We couldn't update your picture. Please try again." });
+      return;
+    }
+    if (path) void supabase.storage.from("avatars").remove([path]);
+    await onSaved();
+    setMessage({ ok: true, text: "Your profile picture has been updated." });
+  };
+
+  return (
+    <section className="animate-rise mt-6 rounded-2xl border border-parchment/10 bg-glass/25 p-6 backdrop-blur-md">
+      <h2 className="font-serif text-xl font-semibold text-parchment">Profile picture</h2>
+      <div className="mt-4 flex items-center gap-4">
+        <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-parchment/20 bg-parchment/5 font-serif text-2xl text-parchment/50">
+          {url ? <img src={url} alt="Your profile picture" className="size-full object-cover" /> : "?"}
+        </div>
+        <label className="cursor-pointer rounded-full border border-parchment/25 px-5 py-3 font-sans text-sm font-medium text-parchment/85 transition-colors hover:border-sand/50">
+          {busy ? "Uploading…" : path ? "Change picture" : "Upload picture"}
+          <input
+            type="file"
+            accept={AVATAR_TYPES.join(",")}
+            className="sr-only"
+            disabled={busy}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void upload(file);
+            }}
+          />
+        </label>
+      </div>
+      {message ? (
+        <p className={`mt-3 font-sans text-xs ${message.ok ? "text-sand" : "text-alert"}`}>{message.text}</p>
+      ) : null}
+    </section>
   );
 }
