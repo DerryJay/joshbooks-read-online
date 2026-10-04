@@ -20,7 +20,7 @@ export type Book = {
   cover: string;
   featured: boolean;
   /** Signed URL of the full PDF/document in Storage, when one has been uploaded. */
-  documentUrl?: string;
+  documentUrl?: string | undefined;
   pageCount: number;
   /** Excerpt pages for the in-browser reader — only loaded for a single book. */
   pages: string[][];
