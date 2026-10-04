@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          admin_id: string | null
+          created_at: string
+          id: string
+          target_id: string | null
+          target_label: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          target_id?: string | null
+          target_label?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
       bookmarks: {
         Row: {
           book_id: string
@@ -183,6 +213,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          disabled: boolean
           email: string | null
           full_name: string | null
           id: string
@@ -192,6 +223,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          disabled?: boolean
           email?: string | null
           full_name?: string | null
           id: string
@@ -201,6 +233,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          disabled?: boolean
           email?: string | null
           full_name?: string | null
           id?: string
@@ -256,15 +289,68 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      admin_book_activity: {
+        Args: { _ids: string[] }
+        Returns: {
+          book_id: string
+          favorites: number
+          readers: number
+        }[]
+      }
+      admin_dashboard_stats: { Args: never; Returns: Json }
+      admin_list_users: {
+        Args: { _limit?: number; _offset?: number; _search?: string }
+        Returns: {
+          bookmarks: number
+          books_completed: number
+          books_started: number
+          created_at: string
+          disabled: boolean
+          email: string
+          favorites: number
+          full_name: string
+          id: string
+          is_admin: boolean
+          last_active: string
+          total: number
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -391,6 +477,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
