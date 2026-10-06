@@ -52,12 +52,12 @@ function Categories() {
 
   async function remove(c: Cat) {
     if (c.books > 0) {
-      if (!moveTo) return toast.error("Choose a category to move its books to first.");
+      if (!moveTo) { toast.error("Choose a category to move its books to first."); return; }
       const { error: mErr } = await supabase.from("books").update({ category_id: moveTo }).eq("category_id", c.id);
-      if (mErr) return toast.error(friendly(mErr, "We couldn't reassign the books.").message);
+      if (mErr) { toast.error(friendly(mErr, "We couldn't reassign the books.").message); return; }
     }
     const { error: dErr } = await supabase.from("categories").delete().eq("id", c.id);
-    if (dErr) return toast.error(friendly(dErr, "We couldn't delete this category.").message);
+    if (dErr) { toast.error(friendly(dErr, "We couldn't delete this category.").message); return; }
     toast.success("Category deleted.");
     setMoveTo("");
     refresh();
