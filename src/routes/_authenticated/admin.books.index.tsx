@@ -30,7 +30,7 @@ function AdminBooks() {
 
   async function doDelete(book: AdminBookRow) {
     const { error: err } = await supabase.from("books").delete().eq("id", book.id);
-    if (err) return toast.error(friendly(err, "We couldn't delete this book.").message);
+    if (err) { toast.error(friendly(err, "We couldn't delete this book.").message); return; }
     await Promise.all([removeFile("book-covers", book.cover_url), removeFile("book-files", book.pdf_url)]);
     toast.success(`"${book.title}" was deleted.`);
     void qc.invalidateQueries({ queryKey: ["admin"] });
