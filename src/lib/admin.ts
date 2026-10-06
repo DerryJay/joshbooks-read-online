@@ -75,7 +75,7 @@ export type AdminBookRow = {
   pdf_url: string | null;
   created_at: string;
   categories: { name: string } | null;
-  coverSigned?: string;
+  coverSigned?: string | null | undefined;
   readers?: number;
   favorites?: number;
 };
@@ -109,7 +109,7 @@ export const adminBooksQuery = (f: AdminBookFilters) =>
         covers.length ? supabase.storage.from("book-covers").createSignedUrls(covers, 3600) : Promise.resolve({ data: [] }),
       ]);
       const act = new Map((activity.data ?? []).map((a: { book_id: string; readers: number; favorites: number }) => [a.book_id, a]));
-      const urls = new Map((signed.data ?? []).map((s: { path: string | null; signedUrl: string }) => [s.path, s.signedUrl]));
+      const urls = new Map((signed.data ?? []).map((s: { path: string | null; signedUrl: string | null }) => [s.path, s.signedUrl]));
       for (const r of rows) {
         r.coverSigned = r.cover_url ? urls.get(r.cover_url) : undefined;
         r.readers = Number(act.get(r.id)?.readers ?? 0);
@@ -201,8 +201,8 @@ export async function uploadWithProgress(
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new AdminError("Your session has expired — please sign in again.");
-  const base = import.meta.env.VITE_SUPABASE_URL as string;
-  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+  const base = import.meta.env["VITE_SUPABASE_URL"] as string;
+  const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string;
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${base}/storage/v1/object/${bucket}/${encodeURI(path)}`);

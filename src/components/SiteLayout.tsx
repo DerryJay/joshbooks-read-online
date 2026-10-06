@@ -2,6 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import { Atmosphere } from "./Atmosphere";
 import { useAuth, displayName } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { isAdminQuery } from "@/lib/admin";
 
 const publicNav = [
   { to: "/", label: "Home" },
@@ -20,6 +22,7 @@ const signedInNav = [
 export function SiteLayout({ children }: { children: ReactNode }) {
   const { user, profile, loading, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { data: isAdmin } = useQuery({ ...isAdminQuery(user?.id), enabled: !!user });
 
   const items = user ? signedInNav : publicNav;
 
@@ -54,6 +57,9 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                   {item.label}
                 </Link>
               ))}
+              {user && isAdmin ? (
+                <Link to="/admin" className={`${linkClass} text-sand`}>Admin</Link>
+              ) : null}
               {loading ? (
                 <span className="ml-2 h-8 w-24 animate-pulse rounded-full bg-parchment/10" />
               ) : user ? (
@@ -107,6 +113,13 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                     </Link>
                   </li>
                 ))}
+                {user && isAdmin ? (
+                  <li>
+                    <Link to="/admin" onClick={() => setMenuOpen(false)} className="block rounded-xl px-3 py-3 text-sand hover:bg-parchment/5">
+                      Admin
+                    </Link>
+                  </li>
+                ) : null}
               </ul>
               <div className="mt-3 flex flex-col gap-2">
                 {loading ? (
