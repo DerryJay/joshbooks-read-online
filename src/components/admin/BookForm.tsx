@@ -103,7 +103,7 @@ export function BookForm({ book }: { book?: AdminBookRow }) {
       navigate({ to: "/admin/books" });
     } catch (err) {
       for (const u of uploaded) await removeFile(u.bucket, u.path);
-      setFormError(err instanceof Error && err.name !== "Error" || err instanceof Error ? (err as Error).message : "Something went wrong.");
+      setFormError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setBusy(false);
     }
