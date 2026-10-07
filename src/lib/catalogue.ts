@@ -19,6 +19,8 @@ export type Book = {
   description: string;
   cover: string;
   featured: boolean;
+  /** When the book was added to the catalogue (ms epoch). */
+  createdAt: number;
   /** Signed URL of the full PDF/document in Storage, when one has been uploaded. */
   documentUrl?: string | undefined;
   pageCount: number;
@@ -29,7 +31,7 @@ export type Book = {
 export type Category = { id: string; name: string; description: string | null };
 
 const LIST_COLUMNS =
-  "id, title, author, short_description, description, category_id, publication_year, cover_url, pdf_url, page_count, publisher, language, pages_label, featured, categories(name)";
+  "id, title, author, short_description, description, category_id, publication_year, cover_url, pdf_url, page_count, publisher, language, pages_label, featured, created_at, categories(name)";
 
 type Row = {
   id: string;
@@ -46,6 +48,7 @@ type Row = {
   language: string | null;
   pages_label: string | null;
   featured: boolean;
+  created_at?: string;
   categories: { name: string } | null;
   content?: unknown;
 };
@@ -81,6 +84,7 @@ function toBook(row: Row, covers: Map<string, string>, files: Map<string, string
     description: row.description ?? "",
     cover: cover && /^https?:/.test(cover) ? cover : "",
     featured: row.featured,
+    createdAt: row.created_at ? new Date(row.created_at).getTime() : 0,
     documentUrl: doc && /^https?:/.test(doc) ? doc : undefined,
     pageCount: row.page_count || pages.length,
     pages,
