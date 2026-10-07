@@ -44,6 +44,82 @@ export type Database = {
         }
         Relationships: []
       }
+      book_ratings: {
+        Row: {
+          book_id: string
+          created_at: string
+          id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          id?: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_ratings_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_stats: {
+        Row: {
+          book_id: string
+          completed: number
+          favorites: number
+          rating_avg: number | null
+          rating_count: number
+          readers: number
+          refreshed_at: string
+          views: number
+        }
+        Insert: {
+          book_id: string
+          completed?: number
+          favorites?: number
+          rating_avg?: number | null
+          rating_count?: number
+          readers?: number
+          refreshed_at?: string
+          views?: number
+        }
+        Update: {
+          book_id?: string
+          completed?: number
+          favorites?: number
+          rating_avg?: number | null
+          rating_count?: number
+          readers?: number
+          refreshed_at?: string
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_stats_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: true
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookmarks: {
         Row: {
           book_id: string
@@ -289,6 +365,64 @@ export type Database = {
           },
         ]
       }
+      recommendation_events: {
+        Row: {
+          book_id: string
+          created_at: string
+          event_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_events_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recommendation_impressions: {
+        Row: {
+          book_id: string
+          day: string
+          impressions: number
+        }
+        Insert: {
+          book_id: string
+          day?: string
+          impressions?: number
+        }
+        Update: {
+          book_id?: string
+          day?: string
+          impressions?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_impressions_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -341,12 +475,29 @@ export type Database = {
           total: number
         }[]
       }
+      admin_recommendation_stats: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      log_recommendation_impressions: {
+        Args: { _ids: string[] }
+        Returns: undefined
+      }
+      public_book_stats: {
+        Args: never
+        Returns: {
+          book_id: string
+          completed: number
+          favorites: number
+          rating_avg: number
+          rating_count: number
+          readers: number
+          views: number
+        }[]
       }
     }
     Enums: {
