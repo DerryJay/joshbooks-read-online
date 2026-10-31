@@ -100,9 +100,9 @@ export function BookForm({ book }: { book?: AdminBookRow }) {
 
       const isDataUrl = Boolean(pdfPath && pdfPath.startsWith("data:"));
       const isUnderLimit = Boolean(isDataUrl && pdfPath && pdfPath.length < 800_000);
-      const safeDocumentUrl = isUnderLimit ? (pdfPath ?? undefined) : (pdfPath && !isDataUrl ? pdfPath : undefined);
+      const safeDocumentUrl = isUnderLimit ? (pdfPath ?? null) : (pdfPath && !isDataUrl ? pdfPath : null);
 
-      const bookRecord = {
+      const rawRecord: Record<string, any> = {
         id,
         title: v.title.trim(),
         author: v.author.trim(),
@@ -114,7 +114,7 @@ export function BookForm({ book }: { book?: AdminBookRow }) {
         publicationYear: v.year ? Number(v.year) : 1866,
         publisher: "Public Domain",
         language: "English",
-        isbn: v.isbn.trim() || undefined,
+        isbn: v.isbn.trim() || null,
         pageCount: v.pages ? Number(v.pages) : 100,
         pagesLabel: v.pages ? `${v.pages} pages` : "100 pages",
         cover: coverPath || `/covers/cover-frankenstein.jpg`,
@@ -125,6 +125,10 @@ export function BookForm({ book }: { book?: AdminBookRow }) {
         pagesJson: JSON.stringify(samplePages),
         is_public_domain: true,
       };
+
+      const bookRecord = Object.fromEntries(
+        Object.entries(rawRecord).filter(([_, val]) => val !== undefined),
+      );
 
       await setDoc(doc(db, "books", id), bookRecord, { merge: true });
       toast.success(book ? "Book updated." : "Book added to the catalogue.");
