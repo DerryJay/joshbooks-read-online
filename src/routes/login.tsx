@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { AuthShell, FieldError, authField, authLabel, authPrimary } from "@/components/AuthShell";
 import { GoogleButton } from "@/components/GoogleButton";
 import { emailError, friendlyAuthError } from "@/lib/auth-validation";
@@ -52,17 +51,17 @@ function LoginPage() {
     if (nextErrors.email || nextErrors.password) return;
 
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    setBusy(false);
-
-    if (error) {
-      setFormError(friendlyAuthError(error.message));
-      return;
+    try {
+      const { signInWithEmailAndPassword } = await import("firebase/auth");
+      const { auth } = await import("@/integrations/firebase/client");
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+      navigate({ to: "/library" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Invalid credentials";
+      setFormError(friendlyAuthError(msg));
+    } finally {
+      setBusy(false);
     }
-    navigate({ to: "/library" });
   };
 
   return (

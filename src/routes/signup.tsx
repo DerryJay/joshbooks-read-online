@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { AuthShell, FieldError, authField, authLabel, authPrimary } from "@/components/AuthShell";
 import { GoogleButton } from "@/components/GoogleButton";
 import { emailError, friendlyAuthError, nameError, passwordError } from "@/lib/auth-validation";
@@ -57,27 +56,32 @@ function SignUpPage() {
     if (Object.values(nextErrors).some(Boolean)) return;
 
     setBusy(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { full_name: fullName.trim() },
-      },
-    });
-    setBusy(false);
-
-    if (error) {
-      setFormError(friendlyAuthError(error.message));
-      return;
-    }
-
-    if (data.session) {
+    try {
+      const { createUserWithEmailAndPassword, updateProfile } = await import("firebase/auth");
+      const { setDoc, doc } = await import("firebase/firestore");
+      const { auth, db } = await import("@/integrations/firebase/client");
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      if (cred.user) {
+        await updateProfile(cred.user, { displayName: fullName.trim() });
+        await setDoc(
+          doc(db, "users", cred.user.uid),
+          {
+            userId: cred.user.uid,
+            fullName: fullName.trim(),
+            email: email.trim(),
+            createdAt: new Date().toISOString(),
+          },
+          { merge: true },
+        );
+      }
       setDone("session");
       navigate({ to: "/library" });
-      return;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to create account";
+      setFormError(friendlyAuthError(msg));
+    } finally {
+      setBusy(false);
     }
-    setDone("confirm");
   };
 
   if (done === "confirm") {

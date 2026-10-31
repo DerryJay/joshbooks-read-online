@@ -127,7 +127,7 @@ function Row({
 }) {
   const { data: stats } = useQuery(bookStatsQuery());
   const { user } = useAuth();
-  const { data: signals } = useQuery({ ...signalsQuery(user?.id), enabled: Boolean(user) });
+  const { data: signals } = useQuery({ ...signalsQuery(user?.uid), enabled: Boolean(user) });
   const { isFavorite, toggle } = useFavorites();
   const statusOf = (id: string) => {
     const p = signals?.progress.find((x) => x.bookId === id);
@@ -169,7 +169,7 @@ export function HomeRecommendations() {
   const { user, loading } = useAuth();
   const { books } = useCatalogue();
   const { data: stats = new Map<string, BookStats>() } = useQuery(bookStatsQuery());
-  const { data: signals = EMPTY_SIGNALS } = useQuery({ ...signalsQuery(user?.id), enabled: Boolean(user) });
+  const { data: signals = EMPTY_SIGNALS } = useQuery({ ...signalsQuery(user?.uid), enabled: Boolean(user) });
   const [seed, setSeed] = useState(0);
 
   const sections = useMemo(() => {

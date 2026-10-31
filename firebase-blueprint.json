@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "Book": {
+      "title": "Book",
+      "description": "Public domain book record in the catalogue",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique book slug", "maxLength": 128 },
+        "title": { "type": "string", "description": "Book title", "maxLength": 256 },
+        "author": { "type": "string", "description": "Book author", "maxLength": 256 },
+        "description": { "type": "string", "description": "Detailed book description", "maxLength": 5000 },
+        "shortDescription": { "type": "string", "description": "Short blurb", "maxLength": 1000 },
+        "categoryId": { "type": "string", "description": "Category slug", "maxLength": 64 },
+        "category": { "type": "string", "description": "Category name", "maxLength": 128 },
+        "publicationYear": { "type": "number", "description": "Original publication year" },
+        "coverUrl": { "type": "string", "description": "Cover image path or URL", "maxLength": 1024 },
+        "pdfUrl": { "type": "string", "description": "Document URL", "maxLength": 1024 },
+        "pageCount": { "type": "number", "description": "Total pages in book" },
+        "publisher": { "type": "string", "description": "Historical publisher name", "maxLength": 256 },
+        "language": { "type": "string", "description": "Language of the volume", "maxLength": 64 },
+        "pagesLabel": { "type": "string", "description": "Label for page count", "maxLength": 64 },
+        "featured": { "type": "boolean", "description": "Whether book is featured on home shelf" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of creation" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of update" }
+      },
+      "required": ["id", "title", "author"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Book category classification",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Category slug", "maxLength": 64 },
+        "name": { "type": "string", "description": "Category name", "maxLength": 128 },
+        "description": { "type": "string", "description": "Category description", "maxLength": 1000 }
+      },
+      "required": ["id", "name"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Reader profile",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID", "maxLength": 128 },
+        "email": { "type": "string", "description": "Reader email address", "maxLength": 256 },
+        "fullName": { "type": "string", "description": "Reader display name", "maxLength": 256 },
+        "avatarUrl": { "type": "string", "description": "Reader avatar URL", "maxLength": 1024 },
+        "createdAt": { "type": "string", "description": "Profile creation timestamp" }
+      },
+      "required": ["userId"]
+    },
+    "Favorite": {
+      "title": "Favorite",
+      "description": "Favorited book reference",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "User UID", "maxLength": 128 },
+        "bookId": { "type": "string", "description": "Book slug", "maxLength": 128 },
+        "createdAt": { "type": "string", "description": "Timestamp added" }
+      },
+      "required": ["userId", "bookId"]
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "description": "Page bookmark for reader",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Bookmark ID", "maxLength": 128 },
+        "userId": { "type": "string", "description": "User UID", "maxLength": 128 },
+        "bookId": { "type": "string", "description": "Book slug", "maxLength": 128 },
+        "page": { "type": "number", "description": "Page number" },
+        "note": { "type": "string", "description": "Optional bookmark note", "maxLength": 1000 },
+        "createdAt": { "type": "string", "description": "Timestamp added" }
+      },
+      "required": ["id", "userId", "bookId", "page"]
+    },
+    "ReadingProgress": {
+      "title": "ReadingProgress",
+      "description": "Reading progress record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "User UID", "maxLength": 128 },
+        "bookId": { "type": "string", "description": "Book slug", "maxLength": 128 },
+        "page": { "type": "number", "description": "Current page index" },
+        "totalPages": { "type": "number", "description": "Total pages" },
+        "progressPercentage": { "type": "number", "description": "Progress percentage 0-100" },
+        "completed": { "type": "boolean", "description": "Has finished reading" },
+        "lastReadAt": { "type": "string", "description": "Last reading timestamp" }
+      },
+      "required": ["userId", "bookId", "page", "totalPages"]
+    }
+  },
+  "firestore": {
+    "/books/{bookId}": {
+      "schema": "Book",
+      "description": "Catalogue books"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Catalogue categories"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile data"
+    },
+    "/users/{userId}/favorites/{bookId}": {
+      "schema": "Favorite",
+      "description": "User favorited books"
+    },
+    "/users/{userId}/bookmarks/{bookmarkId}": {
+      "schema": "Bookmark",
+      "description": "User bookmarks"
+    },
+    "/users/{userId}/reading_progress/{bookId}": {
+      "schema": "ReadingProgress",
+      "description": "User reading progress"
+    }
+  }
+}

@@ -7,8 +7,17 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  onAuthStateChanged,
+  signOut as fbSignOut,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  type User,
+} from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "@/integrations/firebase/client";
 
 export type Profile = {
   id: string;
@@ -19,74 +28,95 @@ export type Profile = {
 
 type AuthValue = {
   user: User | null;
-  session: Session | null;
   /** True while the session is still being determined — never render private data yet. */
   loading: boolean;
   profile: Profile | null;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
 
-  useEffect(() => {
-    let active = true;
-
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!active) return;
-      setSession(nextSession);
-      setLoading(false);
-    });
-
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setSession(data.session);
-      setLoading(false);
-    });
-
-    return () => {
-      active = false;
-      subscription.subscription.unsubscribe();
-    };
-  }, []);
-
-  const user = session?.user ?? null;
-
-  const loadProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, full_name, email, avatar_url")
-      .eq("user_id", userId)
-      .maybeSingle();
-    setProfile(data ?? null);
-  }, []);
-
-  useEffect(() => {
-    if (!user) {
-      setProfile(null);
-      return;
+  const loadProfile = useCallback(async (userId: string, currentUser?: User | null) => {
+    try {
+      const ref = doc(db, "users", userId);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const data = snap.data();
+        setProfile({
+          id: userId,
+          full_name: (data["fullName"] as string) ?? null,
+          email: (data["email"] as string) ?? null,
+          avatar_url: (data["avatarUrl"] as string) ?? null,
+        });
+      } else if (currentUser) {
+        // Create user profile in Firestore if not already present
+        const initialProfile = {
+          userId,
+          fullName: currentUser.displayName || currentUser.email?.split("@")[0] || "Reader",
+          email: currentUser.email || "",
+          avatarUrl: currentUser.photoURL || null,
+          createdAt: new Date().toISOString(),
+        };
+        await setDoc(ref, initialProfile, { merge: true });
+        setProfile({
+          id: userId,
+          full_name: initialProfile.fullName,
+          email: initialProfile.email,
+          avatar_url: initialProfile.avatarUrl,
+        });
+      }
+    } catch (err) {
+      console.warn("Could not load user profile:", err);
+      if (currentUser) {
+        setProfile({
+          id: userId,
+          full_name: currentUser.displayName || currentUser.email?.split("@")[0] || "Reader",
+          email: currentUser.email || "",
+          avatar_url: currentUser.photoURL || null,
+        });
+      }
     }
-    void loadProfile(user.id);
-  }, [user, loadProfile]);
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setLoading(false);
+      if (firebaseUser) {
+        void loadProfile(firebaseUser.uid, firebaseUser);
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [loadProfile]);
 
   const refreshProfile = useCallback(async () => {
-    if (user) await loadProfile(user.id);
+    if (user) await loadProfile(user.uid, user);
   }, [user, loadProfile]);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setSession(null);
+    await fbSignOut(auth);
+    setUser(null);
     setProfile(null);
   }, []);
 
+  const signInWithGoogle = useCallback(async () => {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  }, []);
+
   const value = useMemo<AuthValue>(
-    () => ({ user, session, loading, profile, refreshProfile, signOut }),
-    [user, session, loading, profile, refreshProfile, signOut],
+    () => ({ user, loading, profile, refreshProfile, signOut, signInWithGoogle }),
+    [user, loading, profile, refreshProfile, signOut, signInWithGoogle],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -98,8 +128,7 @@ export function useAuth(): AuthValue {
   return context;
 }
 
-/** Display name preference: profile name → sign-up metadata → email local part. */
+/** Display name preference: profile name → auth display name → email local part. */
 export function displayName(user: User | null, profile: Profile | null) {
-  const metaName = (user?.user_metadata?.["full_name"] as string | undefined) ?? "";
-  return profile?.full_name || metaName || user?.email?.split("@")[0] || "Reader";
+  return profile?.full_name || user?.displayName || user?.email?.split("@")[0] || "Reader";
 }

@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth, displayName } from "@/hooks/useAuth";
 import { FieldError, authField, authLabel, authPrimary } from "@/components/AuthShell";
 import { nameError } from "@/lib/auth-validation";
@@ -87,19 +86,24 @@ function ProfilePage() {
     if (invalid) return;
 
     setBusy(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ full_name: name.trim() })
-      .eq("id", user.id);
-    if (!error) await supabase.auth.updateUser({ data: { full_name: name.trim() } });
-    setBusy(false);
-
-    if (error) {
+    try {
+      const { updateProfile } = await import("firebase/auth");
+      const { setDoc, doc } = await import("firebase/firestore");
+      const { db } = await import("@/integrations/firebase/client");
+      await updateProfile(user, { displayName: name.trim() });
+      await setDoc(
+        doc(db, "users", user.uid),
+        { fullName: name.trim() },
+        { merge: true },
+      );
+      await refreshProfile();
+      setStatus("Your name has been updated.");
+    } catch (err: unknown) {
+      console.error(err);
       setFormError("We couldn't save your name just now. Please try again.");
-      return;
+    } finally {
+      setBusy(false);
     }
-    await refreshProfile();
-    setStatus("Your name has been updated.");
   };
 
   const handleSignOut = async () => {
@@ -107,7 +111,7 @@ function ProfilePage() {
     navigate({ to: "/", replace: true });
   };
 
-  const joined = user.created_at;
+  const joined = user.metadata?.creationTime;
 
   return (
     <SiteLayout>
@@ -130,7 +134,7 @@ function ProfilePage() {
                 ["Name", displayName(user, profile)],
                 ["Email", user.email ?? "—"],
                 ["Member since", joined ? new Date(joined).toLocaleDateString() : "—"],
-                ["Sign-in method", user.app_metadata?.provider ?? "email"],
+                ["Sign-in method", user.providerData?.[0]?.providerId || "password"],
               ] as const
             ).map(([label, value]) => (
               <div key={label} className="border-b border-parchment/10 pb-2">
@@ -151,7 +155,7 @@ function ProfilePage() {
           </p>
         </section>
 
-        <AvatarSection userId={user.id} path={profile?.avatar_url ?? null} onSaved={refreshProfile} />
+        <AvatarSection userId={user.uid} path={profile?.avatar_url ?? null} onSaved={refreshProfile} />
 
         <section className="animate-rise mt-6 rounded-2xl border border-parchment/10 bg-glass/25 p-6 backdrop-blur-md">
           <h2 className="font-serif text-xl font-semibold text-parchment">Update your name</h2>
@@ -226,15 +230,7 @@ function AvatarSection({
       setUrl(null);
       return;
     }
-    void supabase.storage
-      .from("avatars")
-      .createSignedUrl(path, 3600)
-      .then(({ data }) => {
-        if (active) setUrl(data?.signedUrl ?? null);
-      });
-    return () => {
-      active = false;
-    };
+    setUrl(path);
   }, [path]);
 
   const upload = async (file: File) => {
@@ -248,22 +244,23 @@ function AvatarSection({
       return;
     }
     setBusy(true);
-    const ext = file.type.split("/")[1];
-    const objectPath = `${userId}/avatar-${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(objectPath, file, { upsert: true, contentType: file.type });
-    const { error } = uploadError
-      ? { error: uploadError }
-      : await supabase.from("profiles").update({ avatar_url: objectPath }).eq("id", userId);
-    setBusy(false);
-    if (error) {
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const dataUrl = e.target?.result as string;
+        const { setDoc, doc } = await import("firebase/firestore");
+        const { db } = await import("@/integrations/firebase/client");
+        await setDoc(doc(db, "users", userId), { avatarUrl: dataUrl }, { merge: true });
+        setBusy(false);
+        setUrl(dataUrl);
+        await onSaved();
+        setMessage({ ok: true, text: "Your profile picture has been updated." });
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setBusy(false);
       setMessage({ ok: false, text: "We couldn't update your picture. Please try again." });
-      return;
     }
-    if (path) void supabase.storage.from("avatars").remove([path]);
-    await onSaved();
-    setMessage({ ok: true, text: "Your profile picture has been updated." });
   };
 
   return (

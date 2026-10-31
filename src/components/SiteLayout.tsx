@@ -22,7 +22,7 @@ const signedInNav = [
 export function SiteLayout({ children }: { children: ReactNode }) {
   const { user, profile, loading, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { data: isAdmin } = useQuery({ ...isAdminQuery(user?.id), enabled: !!user });
+  const { data: isAdmin } = useQuery({ ...isAdminQuery(user?.uid), enabled: !!user });
 
   const items = user ? signedInNav : publicNav;
 

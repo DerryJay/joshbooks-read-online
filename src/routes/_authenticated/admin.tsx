@@ -2,7 +2,6 @@ import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { checkIsAdmin } from "@/lib/admin";
-import { supabase } from "@/integrations/supabase/client";
 import { Atmosphere } from "@/components/Atmosphere";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -33,7 +32,9 @@ function AdminLayout() {
   async function logout() {
     await qc.cancelQueries();
     qc.clear();
-    await supabase.auth.signOut();
+    const { signOut } = await import("firebase/auth");
+    const { auth } = await import("@/integrations/firebase/client");
+    await signOut(auth);
     navigate({ to: "/login", replace: true });
   }
 

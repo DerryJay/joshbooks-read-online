@@ -85,6 +85,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "description",
         content: "A small digital library for public-domain works. Browse, search, and read online.",
       },
+      { property: "og:title", content: "JoshBooks — Digital Reading Room" },
+      {
+        property: "og:description",
+        content: "A small digital library for public-domain works. Browse, search, and read online.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],

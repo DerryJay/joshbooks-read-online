@@ -1,12 +1,14 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { auth } from "@/integrations/firebase/client";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/login" });
-    return { user: data.user };
+    // If not signed in to Firebase Auth, redirect to login
+    if (!auth.currentUser) {
+      throw redirect({ to: "/login" });
+    }
+    return { user: auth.currentUser };
   },
   component: () => <Outlet />,
 });

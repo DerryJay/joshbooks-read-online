@@ -39,9 +39,38 @@ function createSupabaseClient() {
       ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
       ...(!SUPABASE_PUBLISHABLE_KEY ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
     ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Connect Supabase in Lovable Cloud.`;
-    console.error(`[Supabase] ${message}`);
-    throw new Error(message);
+    console.warn(`[Supabase] Missing environment variable(s): ${missing.join(', ')}. Using mock offline client.`);
+    // Return a safe mock client to avoid crashing SSR or rendering
+    return {
+      auth: {
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+        getSession: async () => ({ data: { session: null }, error: null }),
+        getUser: async () => ({ data: { user: null }, error: null }),
+        signInWithPassword: async () => ({ data: { user: null, session: null }, error: new Error('Database offline') }),
+        signUp: async () => ({ data: { user: null, session: null }, error: new Error('Database offline') }),
+        signOut: async () => ({ error: null }),
+      },
+      from: () => ({
+        select: () => ({
+          order: () => ({
+            range: async () => ({ data: [], error: null }),
+          }),
+          eq: () => ({
+            maybeSingle: async () => ({ data: null, error: null }),
+            single: async () => ({ data: null, error: null }),
+          }),
+        }),
+      }),
+      storage: {
+        from: () => ({
+          createSignedUrls: async (paths: string[]) => ({
+            data: paths.map((path) => ({ path, signedUrl: `/covers/${path}` })),
+            error: null,
+          }),
+          getPublicUrl: (path: string) => ({ data: { publicUrl: `/covers/${path}` } }),
+        }),
+      },
+    } as unknown as ReturnType<typeof createClient<Database>>;
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {

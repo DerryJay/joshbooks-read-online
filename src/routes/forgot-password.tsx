@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { AuthShell, FieldError, authField, authLabel, authPrimary } from "@/components/AuthShell";
 import { emailError, friendlyAuthError } from "@/lib/auth-validation";
 
@@ -37,15 +36,17 @@ function ForgotPasswordPage() {
     if (invalid) return;
 
     setBusy(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setBusy(false);
-    if (error) {
-      setFormError(friendlyAuthError(error.message));
-      return;
+    try {
+      const { sendPasswordResetEmail } = await import("firebase/auth");
+      const { auth } = await import("@/integrations/firebase/client");
+      await sendPasswordResetEmail(auth, email.trim());
+      setSent(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Could not send reset email";
+      setFormError(friendlyAuthError(msg));
+    } finally {
+      setBusy(false);
     }
-    setSent(true);
   };
 
   if (sent) {

@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { AuthShell, FieldError, authField, authLabel, authPrimary } from "@/components/AuthShell";
 import { friendlyAuthError, passwordError } from "@/lib/auth-validation";
 
@@ -35,24 +34,30 @@ function ResetPasswordPage() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
-  // A recovery link arrives with a session in the URL hash; wait for it.
+  // Check for oobCode in query or signed-in state
   useEffect(() => {
-    const hash = window.location.hash;
-    const recovery = hash.includes("type=recovery");
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setValidLink(true);
-        setReady(true);
-      }
-    });
-
-    void supabase.auth.getSession().then(({ data }) => {
-      setValidLink(Boolean(data.session) || recovery);
+    const params = new URLSearchParams(window.location.search);
+    const oobCode = params.get("oobCode");
+    if (oobCode) {
+      setValidLink(true);
       setReady(true);
+      return;
+    }
+    let active = true;
+    void import("firebase/auth").then(({ onAuthStateChanged }) => {
+      void import("@/integrations/firebase/client").then(({ auth }) => {
+        if (!active) return;
+        const unsub = onAuthStateChanged(auth, (usr) => {
+          if (!active) return;
+          setValidLink(Boolean(usr));
+          setReady(true);
+        });
+        return () => unsub();
+      });
     });
-
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const submit = async (event: React.FormEvent) => {
@@ -67,14 +72,24 @@ function ResetPasswordPage() {
     if (nextErrors.password || nextErrors.confirm) return;
 
     setBusy(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setBusy(false);
-    if (error) {
-      setFormError(friendlyAuthError(error.message));
-      return;
+    try {
+      const { confirmPasswordReset, updatePassword } = await import("firebase/auth");
+      const { auth } = await import("@/integrations/firebase/client");
+      const params = new URLSearchParams(window.location.search);
+      const oobCode = params.get("oobCode");
+      if (oobCode) {
+        await confirmPasswordReset(auth, oobCode, password);
+      } else if (auth.currentUser) {
+        await updatePassword(auth.currentUser, password);
+      }
+      setDone(true);
+      window.setTimeout(() => navigate({ to: "/library" }), 1200);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Password update failed";
+      setFormError(friendlyAuthError(msg));
+    } finally {
+      setBusy(false);
     }
-    setDone(true);
-    window.setTimeout(() => navigate({ to: "/library" }), 1200);
   };
 
   if (!ready) {
