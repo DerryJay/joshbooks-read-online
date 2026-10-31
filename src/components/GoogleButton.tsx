@@ -17,7 +17,14 @@ export function GoogleButton({ label = "Continue with Google" }: { label?: strin
       navigate({ to: "/library" });
     } catch (err: unknown) {
       console.error("Google sign-in error:", err);
-      setError("Google sign-in didn't complete. Please try again.");
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("unauthorized-domain")) {
+        setError("Domain not authorized in Firebase Console. Add your Netlify domain under Authentication → Settings → Authorized domains.");
+      } else if (msg.includes("popup-closed-by-user")) {
+        setError("Sign-in popup was closed before completion.");
+      } else {
+        setError("Google sign-in didn't complete. Please try again.");
+      }
     } finally {
       setBusy(false);
     }
