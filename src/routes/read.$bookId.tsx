@@ -58,6 +58,8 @@ export const Route = createFileRoute("/read/$bookId")({
 const ZOOM_STEPS = [0.85, 1, 1.15, 1.35, 1.6];
 const DEFAULT_ZOOM = 1;
 
+import { getLocalPdf } from "@/lib/file-storage";
+
 function Reader() {
   const { book } = Route.useLoaderData();
   const { record, ready, save } = useSavedProgress(book.id);
@@ -69,10 +71,19 @@ function Reader() {
   const [showInfo, setShowInfo] = useState(false);
   const [showResume, setShowResume] = useState(false);
   const [docFailed, setDocFailed] = useState(false);
+  const [localDocUrl, setLocalDocUrl] = useState<string | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
 
-  const total = book.pages.length || book.pageCount || 1;
+  useEffect(() => {
+    void getLocalPdf(book.id).then((url) => {
+      if (url) setLocalDocUrl(url);
+    });
+  }, [book.id]);
+
+  const activeDocUrl = localDocUrl || book.documentUrl;
+  const isDocMode = Boolean(activeDocUrl && !docFailed);
+  const total = isDocMode ? (book.pageCount || 1020) : (book.pageCount || book.pages.length || 1);
   const zoom = ZOOM_STEPS[zoomIndex] ?? 1;
   const percent = progressPercent(page, total);
   const dark = theme === "dark";
@@ -231,16 +242,16 @@ function Reader() {
       ) : null}
 
       <main className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-4 py-5 sm:px-5 sm:py-6">
-        {book.documentUrl && !docFailed ? (
+        {activeDocUrl && !docFailed ? (
           <iframe
-            src={book.documentUrl}
+            src={activeDocUrl}
             title={`${book.title} document`}
             onError={() => setDocFailed(true)}
             className="h-[68vh] w-full rounded-2xl border border-parchment/10 bg-parchment shadow-2xl"
           />
         ) : (
           <>
-            {book.documentUrl && docFailed ? (
+            {activeDocUrl && docFailed ? (
               <div className="mb-4 rounded-xl border border-oxblood/40 bg-oxblood/15 p-4 font-sans text-sm text-parchment/85">
                 The document file for this title could not be loaded. Showing the text edition
                 instead.

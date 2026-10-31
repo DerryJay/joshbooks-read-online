@@ -10,6 +10,8 @@ import { Confirm, ErrorNote, btnGhost, btnPrimary, field, label } from "./AdminU
 
 type Errors = Partial<Record<"title" | "author" | "description" | "category" | "year" | "isbn" | "pages" | "cover" | "pdf", string>>;
 
+import { storeLocalPdf } from "@/lib/file-storage";
+
 export function BookForm({ book }: { book?: AdminBookRow }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -22,6 +24,7 @@ export function BookForm({ book }: { book?: AdminBookRow }) {
     year: book?.publication_year ? String(book.publication_year) : "",
     isbn: book?.isbn ?? "",
     pages: book?.page_count ? String(book.page_count) : "",
+    documentUrl: book?.pdf_url ?? "",
   });
   const [cover, setCover] = useState<File | null>(null);
   const [pdf, setPdf] = useState<File | null>(null);
@@ -44,7 +47,7 @@ export function BookForm({ book }: { book?: AdminBookRow }) {
     if (v.pages && (!/^\d+$/.test(v.pages) || Number(v.pages) > 100000)) e.pages = "Enter a whole number of pages.";
     if (cover) { const c = validateCover(cover); if (c) e.cover = c; }
     if (pdf) { const p = validatePdf(pdf); if (p) e.pdf = p; }
-    if (!pdf && !book?.pdf_url) e.pdf = "A PDF file is required.";
+    if (!pdf && !book?.pdf_url && !v.documentUrl.trim()) e.pdf = "A PDF file or online document URL is required.";
     return e;
   }
 
@@ -74,6 +77,8 @@ export function BookForm({ book }: { book?: AdminBookRow }) {
       if (pdf) {
         pdfPath = await uploadWithProgress("book-files", `${id}-${stamp}.pdf`, pdf, (p) => setProgress((s) => ({ ...s, pdf: p })));
         uploaded.push({ bucket: "book-files", path: pdfPath });
+        // Save large PDF to browser storage
+        await storeLocalPdf(id, pdf);
       }
       const catObj = cats?.find((c) => c.id === v.category);
       const catName = catObj ? catObj.name : "Classics";
@@ -101,6 +106,9 @@ export function BookForm({ book }: { book?: AdminBookRow }) {
       const isDataUrl = Boolean(pdfPath && pdfPath.startsWith("data:"));
       const isUnderLimit = Boolean(isDataUrl && pdfPath && pdfPath.length < 800_000);
       const safeDocumentUrl = isUnderLimit ? (pdfPath ?? null) : (pdfPath && !isDataUrl ? pdfPath : null);
+      const finalDocUrl = v.documentUrl.trim() || safeDocumentUrl || null;
+
+      const pageNum = v.pages ? Number(v.pages) : 100;
 
       const rawRecord: Record<string, any> = {
         id,
@@ -115,13 +123,13 @@ export function BookForm({ book }: { book?: AdminBookRow }) {
         publisher: "Public Domain",
         language: "English",
         isbn: v.isbn.trim() || null,
-        pageCount: v.pages ? Number(v.pages) : 100,
-        pagesLabel: v.pages ? `${v.pages} pages` : "100 pages",
+        pageCount: pageNum,
+        pagesLabel: `${pageNum} pages`,
         cover: coverPath || `/covers/cover-frankenstein.jpg`,
         featured: false,
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        documentUrl: safeDocumentUrl,
+        documentUrl: finalDocUrl,
         pagesJson: JSON.stringify(samplePages),
         is_public_domain: true,
       };
@@ -170,7 +178,14 @@ export function BookForm({ book }: { book?: AdminBookRow }) {
       <div className="md:w-1/2"><label className={label} htmlFor="i">ISBN</label><input id="i" className={field} value={v.isbn} onChange={set("isbn")} /><Err k="isbn" /></div>
       <div className="grid gap-5 md:grid-cols-2">
         <FilePick id="cover" title="Book cover (JPG, PNG, WebP · max 5 MB)" accept="image/jpeg,image/png,image/webp" file={cover} current={book?.cover_url} onFile={setCover} progress={progress.cover} error={errors.cover} />
-        <FilePick id="pdf" title="PDF file * (max 100 MB)" accept="application/pdf" file={pdf} current={book?.pdf_url} onFile={setPdf} progress={progress.pdf} error={errors.pdf} />
+        <FilePick id="pdf" title="PDF file (max 100 MB)" accept="application/pdf" file={pdf} current={book?.pdf_url} onFile={setPdf} progress={progress.pdf} error={errors.pdf} />
+      </div>
+      <div>
+        <label className={label} htmlFor="documentUrl">Online PDF URL (Optional direct public link)</label>
+        <input id="documentUrl" type="url" placeholder="https://example.com/crime-and-punishment.pdf" className={field} value={v.documentUrl} onChange={set("documentUrl")} />
+        <p className="mt-1 text-xs text-parchment/50">
+          If you have a link to the complete PDF online (Archive.org, Gutenberg, Cloud Storage), enter it here so all users can view all pages directly in the browser.
+        </p>
       </div>
       <div className="flex flex-wrap gap-3">
         <button type="submit" className={btnPrimary} disabled={busy}>{busy ? "Saving…" : book ? "Save changes" : "Add book"}</button>
