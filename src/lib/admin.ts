@@ -255,40 +255,76 @@ export function validatePdf(file: File): string | null {
   return null;
 }
 
-/** Upload to Storage with progress reporting (XHR against the Storage API, signed in as the admin). */
+/** Upload/process cover and PDF with progress reporting. */
 export async function uploadWithProgress(
   bucket: "book-covers" | "book-files",
   path: string,
   file: File,
   onProgress: (pct: number) => void,
 ): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new AdminError("Your session has expired — please sign in again.");
-  const base = import.meta.env["VITE_SUPABASE_URL"] as string;
-  const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string;
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", `${base}/storage/v1/object/${bucket}/${encodeURI(path)}`);
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-    xhr.setRequestHeader("apikey", key);
-    xhr.setRequestHeader("x-upsert", "false");
-    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(Math.round((e.loaded / e.total) * 100));
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) return resolve();
-      if (xhr.status === 403 || xhr.status === 401) return reject(new AdminError("You don't have permission to upload files."));
-      if (xhr.status === 413) return reject(new AdminError("That file is too large."));
-      reject(new AdminError("The upload failed. Please try again."));
+  const { auth } = await import("@/integrations/firebase/client");
+  if (!auth.currentUser) throw new AdminError("Your session has expired — please sign in again.");
+
+  onProgress(15);
+  return new Promise<string>((resolve, reject) => {
+    // For images, downscale if needed to keep document well within Firestore 1MB limits
+    if (bucket === "book-covers") {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 800;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, w, h);
+            onProgress(100);
+            resolve(canvas.toDataURL("image/jpeg", 0.85));
+            return;
+          }
+          onProgress(100);
+          resolve(e.target?.result as string);
+        };
+        img.onerror = () => {
+          onProgress(100);
+          resolve(e.target?.result as string);
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new AdminError("Failed to read image cover."));
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // For book documents
+    const reader = new FileReader();
+    reader.onprogress = (e) => {
+      if (e.lengthComputable) {
+        onProgress(Math.min(95, Math.round((e.loaded / e.total) * 100)));
+      }
     };
-    xhr.onerror = () => reject(new AdminError("Network problem during upload — please try again."));
-    xhr.send(file);
+    reader.onload = () => {
+      onProgress(100);
+      resolve(reader.result as string);
+    };
+    reader.onerror = () => reject(new AdminError("Failed to read document file."));
+    reader.readAsDataURL(file);
   });
-  onProgress(100);
-  return path;
 }
 
 export async function removeFile(bucket: "book-covers" | "book-files", path: string | null | undefined) {
-  if (!path || /^https?:/.test(path)) return;
-  await supabase.storage.from(bucket).remove([path]);
+  // No-op for Firestore data
 }

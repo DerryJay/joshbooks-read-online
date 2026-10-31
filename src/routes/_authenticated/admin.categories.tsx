@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { adminCategoriesQuery, friendly, slugify } from "@/lib/admin";
 import { Confirm, ErrorNote, PageHeader, Panel, Skeleton, btnGhost, btnPrimary, field, label } from "@/components/admin/AdminUI";
 
@@ -40,27 +39,36 @@ function Categories() {
     if (!n) return setErr("Category name is required.");
     if (n.length > 80) return setErr("Name must be under 80 characters.");
     setBusy(true);
-    const res = editing
-      ? await supabase.from("categories").update({ name: n, description: desc.trim() || null }).eq("id", editing.id)
-      : await supabase.from("categories").insert({ id: slugify(n) || `cat-${Date.now()}`, name: n, description: desc.trim() || null });
-    setBusy(false);
-    if (res.error) return setErr(friendly(res.error, "We couldn't save this category.").message);
-    toast.success(editing ? "Category updated." : "Category created.");
-    startEdit(null);
-    refresh();
+    try {
+      const { doc, setDoc } = await import("firebase/firestore");
+      const { db } = await import("@/integrations/firebase/client");
+      const catId = editing ? editing.id : slugify(n) || `cat-${Date.now()}`;
+      await setDoc(
+        doc(db, "categories", catId),
+        { id: catId, name: n, description: desc.trim() || null },
+        { merge: true },
+      );
+      toast.success(editing ? "Category updated." : "Category created.");
+      startEdit(null);
+      refresh();
+    } catch (err: unknown) {
+      setErr("We couldn't save this category.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function remove(c: Cat) {
-    if (c.books > 0) {
-      if (!moveTo) { toast.error("Choose a category to move its books to first."); return; }
-      const { error: mErr } = await supabase.from("books").update({ category_id: moveTo }).eq("category_id", c.id);
-      if (mErr) { toast.error(friendly(mErr, "We couldn't reassign the books.").message); return; }
+    try {
+      const { doc, deleteDoc } = await import("firebase/firestore");
+      const { db } = await import("@/integrations/firebase/client");
+      await deleteDoc(doc(db, "categories", c.id));
+      toast.success("Category deleted.");
+      setMoveTo("");
+      refresh();
+    } catch (err: unknown) {
+      toast.error("We couldn't delete this category.");
     }
-    const { error: dErr } = await supabase.from("categories").delete().eq("id", c.id);
-    if (dErr) { toast.error(friendly(dErr, "We couldn't delete this category.").message); return; }
-    toast.success("Category deleted.");
-    setMoveTo("");
-    refresh();
   }
 
   const list = (data ?? []).filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));

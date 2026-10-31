@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import {
   ADMIN_PAGE_SIZE, adminBooksQuery, adminCategoriesQuery, friendly, removeFile,
   type AdminBookFilters, type AdminBookRow,
@@ -29,12 +28,16 @@ function AdminBooks() {
   const { data: cats } = useQuery(adminCategoriesQuery());
 
   async function doDelete(book: AdminBookRow) {
-    const { error: err } = await supabase.from("books").delete().eq("id", book.id);
-    if (err) { toast.error(friendly(err, "We couldn't delete this book.").message); return; }
-    await Promise.all([removeFile("book-covers", book.cover_url), removeFile("book-files", book.pdf_url)]);
-    toast.success(`"${book.title}" was deleted.`);
-    void qc.invalidateQueries({ queryKey: ["admin"] });
-    void qc.invalidateQueries({ queryKey: ["catalogue"] });
+    try {
+      const { doc, deleteDoc } = await import("firebase/firestore");
+      const { db } = await import("@/integrations/firebase/client");
+      await deleteDoc(doc(db, "books", book.id));
+      toast.success(`"${book.title}" was deleted.`);
+      void qc.invalidateQueries({ queryKey: ["admin"] });
+      void qc.invalidateQueries({ queryKey: ["catalogue"] });
+    } catch (err: unknown) {
+      toast.error("We couldn't delete this book.");
+    }
   }
 
   return (

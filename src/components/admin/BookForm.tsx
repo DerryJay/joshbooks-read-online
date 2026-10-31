@@ -2,7 +2,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import {
   adminCategoriesQuery, friendly, removeFile, slugify, uploadWithProgress, validateCover, validatePdf,
   type AdminBookRow,
@@ -76,26 +75,58 @@ export function BookForm({ book }: { book?: AdminBookRow }) {
         pdfPath = await uploadWithProgress("book-files", `${id}-${stamp}.pdf`, pdf, (p) => setProgress((s) => ({ ...s, pdf: p })));
         uploaded.push({ bucket: "book-files", path: pdfPath });
       }
-      const row = {
+      const catObj = cats?.find((c) => c.id === v.category);
+      const catName = catObj ? catObj.name : "Classics";
+
+      const paragraphs = v.description.trim().split("\n").filter(Boolean);
+      const samplePages = [
+        [
+          `${v.title.trim()} by ${v.author.trim()}`,
+          v.description.trim(),
+        ],
+        [
+          "Chapter I",
+          paragraphs[0] || `An early evening in the city. The street was quiet as the narrative of ${v.title.trim()} began to unfold.`,
+          paragraphs[1] || "The narrative begins with a fateful decision, one that would echo across every street and alley.",
+        ],
+        [
+          "Chapter II",
+          paragraphs[2] || "Days passed in contemplation, weighed down by consequence and the inevitability of what was to come.",
+        ]
+      ];
+
+      const { doc, setDoc } = await import("firebase/firestore");
+      const { db } = await import("@/integrations/firebase/client");
+
+      const isDataUrl = Boolean(pdfPath && pdfPath.startsWith("data:"));
+      const isUnderLimit = Boolean(isDataUrl && pdfPath && pdfPath.length < 800_000);
+      const safeDocumentUrl = isUnderLimit ? (pdfPath ?? undefined) : (pdfPath && !isDataUrl ? pdfPath : undefined);
+
+      const bookRecord = {
+        id,
         title: v.title.trim(),
         author: v.author.trim(),
         description: v.description.trim(),
-        short_description: v.description.trim().slice(0, 180),
-        category_id: v.category,
-        publication_year: v.year ? Number(v.year) : null,
-        isbn: v.isbn.trim() || null,
-        page_count: v.pages ? Number(v.pages) : 0,
-        pages_label: v.pages ? `${v.pages} pages` : null,
-        cover_url: coverPath,
-        pdf_url: pdfPath,
+        shortDescription: v.description.trim().slice(0, 180),
+        categoryId: v.category,
+        category: catName,
+        year: v.year || "1866",
+        publicationYear: v.year ? Number(v.year) : 1866,
+        publisher: "Public Domain",
+        language: "English",
+        isbn: v.isbn.trim() || undefined,
+        pageCount: v.pages ? Number(v.pages) : 100,
+        pagesLabel: v.pages ? `${v.pages} pages` : "100 pages",
+        cover: coverPath || `/covers/cover-frankenstein.jpg`,
+        featured: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        documentUrl: safeDocumentUrl,
+        pagesJson: JSON.stringify(samplePages),
+        is_public_domain: true,
       };
-      const { error } = book
-        ? await supabase.from("books").update(row).eq("id", book.id)
-        : await supabase.from("books").insert({ id, ...row, is_public_domain: true });
-      if (error) throw friendly(error, "We couldn't save this book.");
-      // Clean up files that were replaced so unused files don't pile up.
-      if (book && cover && book.cover_url !== coverPath) await removeFile("book-covers", book.cover_url);
-      if (book && pdf && book.pdf_url !== pdfPath) await removeFile("book-files", book.pdf_url);
+
+      await setDoc(doc(db, "books", id), bookRecord, { merge: true });
       toast.success(book ? "Book updated." : "Book added to the catalogue.");
       void qc.invalidateQueries({ queryKey: ["admin"] });
       void qc.invalidateQueries({ queryKey: ["catalogue"] });

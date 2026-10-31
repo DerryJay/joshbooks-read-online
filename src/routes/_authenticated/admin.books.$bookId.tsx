@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { friendly, type AdminBookRow } from "@/lib/admin";
 import { BookForm } from "@/components/admin/BookForm";
 import { ErrorNote, PageHeader, Skeleton, btnGhost } from "@/components/admin/AdminUI";
@@ -14,13 +13,28 @@ function EditBook() {
   const { data, error, isLoading } = useQuery({
     queryKey: ["admin", "book", bookId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("books")
-        .select("id, title, author, description, category_id, publication_year, isbn, page_count, cover_url, pdf_url, created_at, categories(name)")
-        .eq("id", bookId)
-        .maybeSingle();
-      if (error) throw friendly(error, "We couldn't load this book.");
-      return data as unknown as AdminBookRow | null;
+      const { doc, getDoc } = await import("firebase/firestore");
+      const { db } = await import("@/integrations/firebase/client");
+      const snap = await getDoc(doc(db, "books", bookId));
+      if (!snap.exists()) return null;
+      const b = snap.data();
+      return {
+        id: (b["id"] as string) || bookId,
+        title: (b["title"] as string) || "",
+        author: (b["author"] as string) || "",
+        description: (b["description"] as string) || null,
+        category_id: (b["categoryId"] as string) || null,
+        publication_year: b["publicationYear"] ? Number(b["publicationYear"]) : null,
+        isbn: (b["isbn"] as string) || null,
+        page_count: (b["pageCount"] as number) || 0,
+        cover_url: (b["cover"] as string) || (b["coverUrl"] as string) || null,
+        pdf_url: (b["documentUrl"] as string) || (b["pdfUrl"] as string) || null,
+        created_at: new Date((b["createdAt"] as number) || Date.now()).toISOString(),
+        categories: { name: (b["category"] as string) || "Classics" },
+        coverSigned: (b["cover"] as string) || (b["coverUrl"] as string) || null,
+        readers: 0,
+        favorites: 0,
+      } as AdminBookRow;
     },
   });
   return (
