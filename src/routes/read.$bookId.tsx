@@ -160,11 +160,10 @@ function Reader() {
   }, [book.id, book.documentUrl]);
 
   // Compute total pages:
-  // If PDF loaded, use pdfDoc.numPages (e.g. 1020 pages!).
-  // Otherwise use book.pageCount or text pages length.
-  const total = pdfDoc
-    ? pdfDoc.numPages
-    : book.pageCount || (book.pages.length ? book.pages.length : 1);
+  // When PDF is loaded, use actual PDF page count (e.g. 1020 pages).
+  // In text mode, strictly use the available text pages so readers never encounter blank pages!
+  const textTotal = book.pages && book.pages.length > 0 ? book.pages.length : 1;
+  const total = pdfDoc ? pdfDoc.numPages : textTotal;
 
   const zoom = ZOOM_STEPS[zoomIndex] ?? 1;
   const percent = progressPercent(page, total);
@@ -459,17 +458,23 @@ function Reader() {
               style={{ fontSize: `${zoom}rem`, lineHeight: 1.8 }}
               className="mx-auto max-w-[62ch] font-serif transition-[font-size] duration-300"
             >
+              {book.pageCount && book.pageCount > textTotal && (
+                <div
+                  className={`mb-6 rounded-xl border p-4 font-sans text-xs ${
+                    dark
+                      ? "border-sand/20 bg-water-deep/50 text-parchment/80"
+                      : "border-sand/40 bg-sand/15 text-ink/80"
+                  }`}
+                >
+                  <span className="font-semibold text-sand">Catalogue Note:</span> Showing available excerpt ({textTotal} pages). The complete {book.pageCount}-page PDF document is being processed by the library admin.
+                </div>
+              )}
+
               {(book.pages[page] ?? []).map((paragraph, index) => (
                 <p key={index} className={index === 0 ? "" : "mt-6"}>
                   {paragraph}
                 </p>
               ))}
-
-              {!(book.pages[page] && book.pages[page].length) && (
-                <div className="py-12 text-center font-sans text-sm opacity-60">
-                  <p>Page {page + 1} of {total}</p>
-                </div>
-              )}
 
               <p
                 className={`mt-10 text-center font-mono text-[10px] uppercase tracking-[0.2em] ${

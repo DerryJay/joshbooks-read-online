@@ -443,5 +443,86 @@ export const SEED_BOOKS: Book[] = [
         "— End of Section —"
       ]
     ]
+  },
+  {
+    "id": "crime-and-punishment-fotm4",
+    "title": "Crime and Punishment",
+    "author": "Fyodor Dostoevsky",
+    "category": "Mystery",
+    "categoryId": "mystery",
+    "year": "1866",
+    "publisher": "The Russian Messenger",
+    "pagesLabel": "1020 pages",
+    "language": "English",
+    "shortDescription": "A broke student in St. Petersburg talks himself into committing murder, thinking he is too smart to feel guilty. Crime and Punishment follows the slow unraveling of a mind that cannot escape what it has done.",
+    "description": "A broke student in St. Petersburg talks himself into committing murder, thinking he is too smart to feel guilty. Crime and Punishment follows the slow unraveling of a mind that cannot escape what it has done.",
+    "cover": "/covers/cover-frankenstein.jpg",
+    "featured": true,
+    "createdAt": 1793441647998,
+    "pageCount": 1020,
+    "pages": [
+      [
+        "Crime and Punishment by Fyodor Dostoevsky",
+        "Translated by Constance Garnett",
+        "Part I — Chapter I",
+        "On an exceptionally hot evening early in July a young man came out of the garret in which he lodged in S. Place and walked slowly, as though in hesitation, towards K. bridge."
+      ],
+      [
+        "He had successfully avoided meeting his landlady on the stairs. His garret was under the roof of a high, five-storied house and was more like a cupboard than a room. The landlady who provided him with room, dinners, and attendance, lived on the floor below, and every time he went out he was obliged to pass her kitchen, the door of which invariably stood open.",
+        "And each time he passed, the young man had a sick, frightened feeling, which made him scowl and feel ashamed. He was hopelessly in debt to his landlady, and was afraid of meeting her."
+      ],
+      [
+        "This was not because he was cowardly and abject, quite the contrary; but for some time past he had been in an overstrained irritable condition, verging on hypochondria. He had become so completely absorbed in himself, and isolated from his fellows, that he dreaded meeting not only his landlady, but anyone at all.",
+        "He was crushed by poverty, but the anxieties of his position had of late ceased to weigh upon him. He had given up attending to matters of practical importance; he had lost all desire to do so. Nothing that any landlady could do had a real terror for him."
+      ],
+      [
+        "To be stopped on the stairs, to be forced to listen to her trivial, irrelevant gossip, to pestering demands for payment, threats and complaints, and to rack his brains for excuses, to prevaricate, to lie—no, rather than that, he would creep down the stairs like a cat and slip out unseen.",
+        "This evening, however, on coming out into the street, he became acutely aware of his fears. 'I want to attempt a thing like that and am frightened by these trifles,' he thought, with an odd smile."
+      ],
+      [
+        "The heat in the street was terrible: and the airlessness, the bustle and the plaster, scaffolding, bricks, and dust, and that peculiar St. Petersburg stench, so familiar to all who are unable to get out of town in summer—all worked painfully upon the young man's already excited nerves.",
+        "The insufferable stench from the pot-houses, which are particularly numerous in that part of the town, and the drunken men whom he met continually, completed the revolting misery of the picture."
+      ],
+      [
+        "An expression of the profoundest disgust gleamed for a moment in the young man's refined face. He was, by the way, exceptionally handsome, above the average in height, slim, well-built, with fine dark eyes and dark brown hair.",
+        "Soon he sank into deep thought, or more accurately speaking, into a complete blankness of mind; he walked along not observing what was about him, and not caring to observe it. From time to time he would mutter something, from the habit of talking to himself, to which he had just confessed."
+      ],
+      [
+        "At these moments he would become conscious that his ideas were sometimes in a tangle and that he was very weak; for two days he had scarcely tasted food. He was so badly dressed that even a man accustomed to shabbiness would have been ashamed to be seen in the street in such rags.",
+        "In that quarter of the town, however, scarcely any shortcoming in dress would have created surprise. Owing to the proximity of the Hay Market, the number of establishments of bad character, the preponderance of the trading and working class population crowded in these streets and alleys in the heart of Petersburg, types so varied were to be seen in the streets that no figure, however queer, would have caused surprise."
+      ],
+      [
+        "The young man's hat was a tall round one, but worn out with age, full of holes and stains, brimless and bent on one side in a most unseemly fashion. But not shame, but quite another feeling akin to terror had overtaken him.",
+        "'I knew it,' he muttered in confusion, 'I thought so! That's the worst of all! Why, a stupid thing like this, the most trivial detail might spoil the whole plan. Yes, of course, the hat is too noticeable... It looks absurd, that's why it's noticeable. With my rags I ought to wear a cap, any sort of old pancake, but not this grotesque thing. Nobody wears such a hat, it would be noticed a mile off, it would be remembered... What matters is that people would remember it afterwards, and that would be evidence against me. In this business one ought to be as little noticeable as possible... Trifles, trifles are what matter! Why, it's just such trifles that always ruin everything...'"
+      ],
+      [
+        "He had not far to go; he knew indeed how many steps it was from the gate of his lodging house: exactly seven hundred and thirty. He had counted them once when he had been lost in his daydreams. At the time he had put no faith in those daydreams and was only tantalising himself with their hideous but daring recklessness.",
+        "Now, a month later, he had begun to look at them differently, and, in spite of the monologues in which he jeered at his own impotence and indecision, he had involuntarily come to regard this 'hideous' daydream as an enterprise to be carried out, though he still did not venture to believe in it."
+      ],
+      [
+        "He was even now going to make a rehearsal of his enterprise, and at every step his excitement grew more and more violent. With a sinking heart and a nervous tremor, he went up to a huge house which on one side looked on to the canal, and on the other into the street.",
+        "This house was let out in tiny tenements and was inhabited by all sorts of working-people—tailors, locksmiths, cooks, Germans of sort, girls picking up a living as best they could, petty clerks, etc. There was a continual coming and going through the two gates and in the two courtyards of the house. Three or four cab-drivers were standing at each entrance."
+      ],
+      [
+        "The young man was very glad not to meet anyone, and he slipped through the gateway and immediately turned to the right up the staircase. It was a dark and narrow staircase, a 'back' stairs, but he was familiar with it, and the circumstances pleased him; in such darkness even an inquisitive spectator was not to be dreaded.",
+        "'If I am so scared now, what would it be if it came to the real thing?' he could not help asking himself as he reached the fourth storey. There his progress was barred by some porters who were moving furniture out of a flat. He knew that the flat had been occupied by a German clerk in the civil service, and his family. This clerk was leaving it, and it was the fourth storey flat in this staircase which would remain vacant."
+      ],
+      [
+        "'So there will be nobody on this landing for a time... that's good to know,' he thought again, and he rang the bell of the old woman's flat. The bell gave a faint tinkle as though it were made of tin, and not of brass.",
+        "The little flats in such houses always have bells that ring like that. He had forgotten the sound of that bell, and now its peculiar tinkle seemed to remind him of something and to bring it clearly before him... He started, his nerves were terribly overstrung by this time. After a short pause, the door was opened a tiny crack; the occupant of the flat was looking through the crack with evident suspicion, and only her little eyes gleamed in the darkness."
+      ],
+      [
+        "When she saw at least that there were several people on the landing, she took courage, and opened the door wide. The young man stepped into the dark entry, which was partitioned off from the tiny kitchen. The old woman stood facing him in silence and looking inquiringly at him.",
+        "She was a diminutive, withered up old woman of sixty, with sharp malignant eyes and a sharp little nose. Her colourless, somewhat grizzled hair was thickly smeared with oil, and an old flannel rag was tied round her neck. On her shoulders, in spite of the heat, there fluttered a tattered little fur cape, yellow with age. She coughed incessantly."
+      ],
+      [
+        "The young man must have looked at her with a rather peculiar expression, for a gleam of mistrust came into her eyes again. 'Raskolnikov, a student, I came here a month ago,' the young man made haste to mutter, with a half bow, remembering that he ought to be more polite.",
+        "'I remember, my good sir, I remember quite well your coming here,' the old woman said distinctly, still keeping her inquiring eyes on his face. 'And here... I am again on the same errand,' Raskolnikov continued, a little disconcerted and surprised at the old woman's mistrust."
+      ],
+      [
+        "'Perhaps she is always like that though, only I did not notice it last time,' he thought with an uneasy feeling. The old woman paused, as if wavering. Then she stepped to one side, and pointing to the door of the room, she said, letting him pass in: 'Step in, sir.'",
+        "The tiny room into which the young man walked, with yellow paper on the walls, geraniums and muslin curtains in the windows, was at that moment brightly illuminated by the setting sun. 'So the sun will shine like this then too!' was the thought that flashed through Raskolnikov's mind, and with a rapid glance he scanned everything in the room, trying to remember its position."
+      ]
+    ]
   }
 ];

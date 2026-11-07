@@ -64,6 +64,14 @@ function normalizeBook(data: any): Book {
       pages = JSON.parse(data.pagesJson);
     } catch {}
   }
+  if (!pages || pages.length <= 3) {
+    const seed = SEED_BOOKS.find(
+      (s) => s.id === data.id || (s.title && data.title && s.title.toLowerCase() === data.title.toLowerCase())
+    );
+    if (seed && seed.pages && seed.pages.length > (pages ? pages.length : 0)) {
+      pages = seed.pages;
+    }
+  }
   return {
     ...data,
     pages: pages || [],
