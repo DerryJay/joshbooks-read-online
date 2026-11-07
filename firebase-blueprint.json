@@ -88,12 +88,27 @@
         "lastReadAt": { "type": "string", "description": "Last reading timestamp" }
       },
       "required": ["userId", "bookId", "page", "totalPages"]
+    },
+    "PdfChunk": {
+      "title": "PdfChunk",
+      "description": "Binary chunk of uploaded book PDF document",
+      "type": "object",
+      "properties": {
+        "index": { "type": "number", "description": "Chunk index" },
+        "totalChunks": { "type": "number", "description": "Total number of chunks" },
+        "data": { "type": "string", "description": "Base64 chunk data" }
+      },
+      "required": ["index", "totalChunks", "data"]
     }
   },
   "firestore": {
     "/books/{bookId}": {
       "schema": "Book",
       "description": "Catalogue books"
+    },
+    "/books/{bookId}/pdf_chunks/{chunkId}": {
+      "schema": "PdfChunk",
+      "description": "PDF chunks for full book reading"
     },
     "/categories/{categoryId}": {
       "schema": "Category",

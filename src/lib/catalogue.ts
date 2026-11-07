@@ -28,6 +28,7 @@ export type Book = {
   pageCount: number;
   /** Excerpt pages for the in-browser reader — only loaded for a single book. */
   pages: string[][];
+  hasPdfDocument?: boolean;
 };
 
 export type Category = { id: string; name: string; description: string | null };

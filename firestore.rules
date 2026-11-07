@@ -25,6 +25,12 @@ service cloud.firestore {
     match /books/{bookId} {
       allow read: if true;
       allow write: if isAdmin();
+
+      // Subcollection for PDF document chunks: public read for all visitors, admin write
+      match /pdf_chunks/{chunkId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
     }
 
     // Categories collection: public read, admin write

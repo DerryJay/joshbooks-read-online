@@ -11,6 +11,7 @@ import { Confirm, ErrorNote, btnGhost, btnPrimary, field, label } from "./AdminU
 type Errors = Partial<Record<"title" | "author" | "description" | "category" | "year" | "isbn" | "pages" | "cover" | "pdf", string>>;
 
 import { storeLocalPdf } from "@/lib/file-storage";
+import { uploadPdfToFirestore } from "@/lib/pdf-chunks";
 
 export function BookForm({ book }: { book?: AdminBookRow }) {
   const navigate = useNavigate();
@@ -74,11 +75,13 @@ export function BookForm({ book }: { book?: AdminBookRow }) {
         coverPath = await uploadWithProgress("book-covers", `${id}-${stamp}.${ext}`, cover, (p) => setProgress((s) => ({ ...s, cover: p })));
         uploaded.push({ bucket: "book-covers", path: coverPath });
       }
+      let hasPdfDoc = Boolean((book as any)?.hasPdfDocument || v.documentUrl.trim());
       if (pdf) {
-        pdfPath = await uploadWithProgress("book-files", `${id}-${stamp}.pdf`, pdf, (p) => setProgress((s) => ({ ...s, pdf: p })));
-        uploaded.push({ bucket: "book-files", path: pdfPath });
-        // Save large PDF to browser storage
+        // Upload chunked PDF to Firestore so all readers across the web can read it immediately
+        await uploadPdfToFirestore(id, pdf, (p) => setProgress((s) => ({ ...s, pdf: p })));
+        // Also save to browser IndexedDB for fast local caching
         await storeLocalPdf(id, pdf);
+        hasPdfDoc = true;
       }
       const catObj = cats?.find((c) => c.id === v.category);
       const catName = catObj ? catObj.name : "Classics";
@@ -130,6 +133,7 @@ export function BookForm({ book }: { book?: AdminBookRow }) {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         documentUrl: finalDocUrl,
+        hasPdfDocument: hasPdfDoc,
         pagesJson: JSON.stringify(samplePages),
         is_public_domain: true,
       };

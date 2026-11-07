@@ -13,6 +13,7 @@ import {
   type ReaderTheme,
 } from "@/lib/reading-progress";
 import { getLocalPdfBlob, storeLocalPdf } from "@/lib/file-storage";
+import { fetchPdfFromFirestore } from "@/lib/pdf-chunks";
 import { PdfPageView } from "@/components/PdfPageView";
 
 // Configure PDF.js worker
@@ -81,21 +82,23 @@ function Reader() {
   // PDF Document State
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState<number | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
 
   const shellRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load PDF from IndexedDB or documentUrl
+  // Automatically load the book's full PDF (from local cache, remote URL, or Firestore chunks uploaded by admin)
   useEffect(() => {
     let active = true;
 
     async function loadPdf() {
       setPdfLoading(true);
       setPdfError(null);
+      setPdfProgress(null);
+
       try {
-        // 1. Try local storage in browser
+        // 1. Try local cache in browser IndexedDB
         const localBlob = await getLocalPdfBlob(book.id);
         if (localBlob && active) {
           const buffer = await localBlob.arrayBuffer();
@@ -108,9 +111,27 @@ function Reader() {
           }
         }
 
-        // 2. Try online documentUrl
+        // 2. Try online documentUrl if configured by admin
         if (book.documentUrl && active) {
           const loadingTask = pdfjsLib.getDocument({ url: book.documentUrl });
+          const doc = await loadingTask.promise;
+          if (active) {
+            setPdfDoc(doc);
+            setPdfLoading(false);
+            return;
+          }
+        }
+
+        // 3. Automatically download PDF chunks from Firestore (stored by admin)
+        const firestoreBlob = await fetchPdfFromFirestore(book.id, (p) => {
+          if (active) setPdfProgress(p);
+        });
+
+        if (firestoreBlob && active) {
+          // Cache in local IndexedDB so all future reads in this browser are instant
+          await storeLocalPdf(book.id, firestoreBlob);
+          const buffer = await firestoreBlob.arrayBuffer();
+          const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
           const doc = await loadingTask.promise;
           if (active) {
             setPdfDoc(doc);
@@ -125,7 +146,7 @@ function Reader() {
       } catch (err: any) {
         if (active) {
           console.warn("Could not load PDF document:", err);
-          setPdfError(err?.message || "Failed to load PDF.");
+          setPdfError(err?.message || "Failed to load document.");
           setPdfLoading(false);
         }
       }
@@ -138,27 +159,9 @@ function Reader() {
     };
   }, [book.id, book.documentUrl]);
 
-  // Handle in-reader PDF file selection
-  const handlePdfUpload = async (file: File) => {
-    setPdfLoading(true);
-    setPdfError(null);
-    try {
-      await storeLocalPdf(book.id, file);
-      const buffer = await file.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
-      const doc = await loadingTask.promise;
-      setPdfDoc(doc);
-    } catch (err: any) {
-      console.error("Failed to process uploaded PDF:", err);
-      setPdfError("Failed to process this PDF file.");
-    } finally {
-      setPdfLoading(false);
-    }
-  };
-
   // Compute total pages:
-  // If PDF loaded, use pdfDoc.numPages (exact 1020 pages!).
-  // Otherwise use book.pageCount or fallback.
+  // If PDF loaded, use pdfDoc.numPages (e.g. 1020 pages!).
+  // Otherwise use book.pageCount or text pages length.
   const total = pdfDoc
     ? pdfDoc.numPages
     : book.pageCount || (book.pages.length ? book.pages.length : 1);
@@ -260,18 +263,6 @@ function Reader() {
       ref={shellRef}
       className="relative flex min-h-screen flex-col bg-water-deep font-sans text-parchment"
     >
-      {/* Hidden file input for attaching/loading PDF */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="application/pdf"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) void handlePdfUpload(file);
-        }}
-      />
-
       {/* Reader header chrome */}
       <header className="relative z-20 border-b border-parchment/10 bg-water-deep/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-5">
@@ -283,15 +274,6 @@ function Reader() {
               {book.title}
             </h1>
           </div>
-
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            title="Load local PDF document"
-            className="shrink-0 rounded-full border border-sand/40 bg-sand/10 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-sand transition-colors hover:bg-sand/20"
-          >
-            {pdfDoc ? "Change PDF" : "Attach PDF"}
-          </button>
 
           <button
             type="button"
@@ -455,43 +437,28 @@ function Reader() {
             <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
               <div className="size-8 animate-spin rounded-full border-2 border-oxblood border-t-transparent" />
               <p className="font-mono text-xs uppercase tracking-widest text-parchment/70">
-                Loading complete document…
+                Loading complete volume ({total} pages)…
               </p>
+              {pdfProgress !== null ? (
+                <div className="w-48">
+                  <div className="h-1 rounded-full bg-parchment/15 overflow-hidden">
+                    <div
+                      className="h-full bg-sand transition-[width] duration-200"
+                      style={{ width: `${pdfProgress}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-center font-mono text-[10px] text-parchment/40">
+                    {pdfProgress}% downloaded
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : (
-            /* Text Page Fallback Mode */
+            /* Text Page Mode */
             <div
               style={{ fontSize: `${zoom}rem`, lineHeight: 1.8 }}
               className="mx-auto max-w-[62ch] font-serif transition-[font-size] duration-300"
             >
-              {book.pageCount && book.pageCount > (book.pages.length || 0) && !pdfDoc ? (
-                <div
-                  className={`mb-8 rounded-xl border p-5 font-sans ${
-                    dark
-                      ? "border-sand/20 bg-water-deep/50 text-parchment/90"
-                      : "border-sand/40 bg-sand/15 text-ink/90"
-                  }`}
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="font-serif text-base font-semibold">
-                        Complete {book.pageCount}-Page Volume
-                      </h3>
-                      <p className="mt-0.5 text-xs opacity-75">
-                        Attach your PDF file to view every page in high definition with smooth page turning.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="shrink-0 rounded-full bg-oxblood px-4 py-2 font-sans text-xs font-semibold text-parchment hover:bg-oxblood/90"
-                    >
-                      Attach PDF File
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
               {(book.pages[page] ?? []).map((paragraph, index) => (
                 <p key={index} className={index === 0 ? "" : "mt-6"}>
                   {paragraph}
@@ -501,9 +468,6 @@ function Reader() {
               {!(book.pages[page] && book.pages[page].length) && (
                 <div className="py-12 text-center font-sans text-sm opacity-60">
                   <p>Page {page + 1} of {total}</p>
-                  <p className="mt-2 text-xs">
-                    Attach the full PDF to read this page and all {total} pages.
-                  </p>
                 </div>
               )}
 
@@ -645,16 +609,6 @@ function Reader() {
             </dl>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowInfo(false);
-                  fileInputRef.current?.click();
-                }}
-                className="rounded-full border border-sand/40 bg-sand/15 px-5 py-3 font-sans text-sm font-semibold text-sand transition-colors hover:bg-sand/25"
-              >
-                Attach / Change PDF
-              </button>
               <Link
                 to="/books/$bookId"
                 params={{ bookId: book.id }}
