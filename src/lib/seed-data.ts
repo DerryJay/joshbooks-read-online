@@ -4,87 +4,87 @@ export const SEED_CATEGORIES: Category[] = [
   {
     "id": "adventure",
     "name": "Adventure",
-    "description": "Adventure titles in the JoshBooks demo collection"
+    "description": "Adventure titles in the JoshBooks collection"
   },
   {
     "id": "biography",
     "name": "Biography",
-    "description": "Biography titles in the JoshBooks demo collection"
+    "description": "Biography titles in the JoshBooks collection"
   },
   {
     "id": "business",
     "name": "Business",
-    "description": "Business titles in the JoshBooks demo collection"
+    "description": "Business titles in the JoshBooks collection"
   },
   {
     "id": "children-s",
     "name": "Children's",
-    "description": "Children's titles in the JoshBooks demo collection"
+    "description": "Children's titles in the JoshBooks collection"
   },
   {
     "id": "classics",
     "name": "Classics",
-    "description": "Classics titles in the JoshBooks demo collection"
+    "description": "Classics titles in the JoshBooks collection"
   },
   {
     "id": "education",
     "name": "Education",
-    "description": "Education titles in the JoshBooks demo collection"
+    "description": "Education titles in the JoshBooks collection"
   },
   {
     "id": "fiction",
     "name": "Fiction",
-    "description": "Fiction titles in the JoshBooks demo collection"
+    "description": "Fiction titles in the JoshBooks collection"
   },
   {
     "id": "gothic",
     "name": "Gothic",
-    "description": "Gothic titles in the JoshBooks demo collection"
+    "description": "Gothic titles in the JoshBooks collection"
   },
   {
     "id": "history",
     "name": "History",
-    "description": "History titles in the JoshBooks demo collection"
+    "description": "History titles in the JoshBooks collection"
   },
   {
     "id": "literature",
     "name": "Literature",
-    "description": "Literature titles in the JoshBooks demo collection"
+    "description": "Literature titles in the JoshBooks collection"
   },
   {
     "id": "mystery",
     "name": "Mystery",
-    "description": "Mystery titles in the JoshBooks demo collection"
+    "description": "Mystery titles in the JoshBooks collection"
   },
   {
     "id": "other",
     "name": "Other",
-    "description": "Other titles in the JoshBooks demo collection"
+    "description": "Other titles in the JoshBooks collection"
   },
   {
     "id": "philosophy",
     "name": "Philosophy",
-    "description": "Philosophy titles in the JoshBooks demo collection"
+    "description": "Philosophy titles in the JoshBooks collection"
   },
   {
     "id": "poetry",
     "name": "Poetry",
-    "description": "Poetry titles in the JoshBooks demo collection"
+    "description": "Poetry titles in the JoshBooks collection"
   },
   {
     "id": "science",
     "name": "Science",
-    "description": "Science titles in the JoshBooks demo collection"
+    "description": "Science titles in the JoshBooks collection"
   },
   {
     "id": "science-fiction",
     "name": "Science Fiction",
-    "description": "Science Fiction titles in the JoshBooks demo collection"
+    "description": "Science Fiction titles in the JoshBooks collection"
   },
   {
     "id": "technology",
     "name": "Technology",
-    "description": "Technology titles in the JoshBooks demo collection"
+    "description": "Technology titles in the JoshBooks collection"
   }
 ];
 
@@ -126,7 +126,7 @@ export const SEED_BOOKS: Book[] = [
       [
         "It was on a dreary night of November that I beheld the accomplishment of my toils. With an anxiety that almost amounted to agony, I collected the instruments of life around me, that I might infuse a spark of being into the lifeless thing that lay at my feet.",
         "It was already one in the morning; the rain pattered dismally against the panes, and my candle was nearly burnt out, when, by the glimmer of the half-extinguished light, I saw the dull yellow eye of the creature open.",
-        "— End of demo excerpt —"
+        "— End of Section —"
       ]
     ]
   },
@@ -165,7 +165,7 @@ export const SEED_BOOKS: Book[] = [
         "I too am not a bit tamed, I too am untranslatable, I sound my barbaric yawp over the roofs of the world.",
         "The last scud of day holds back for me, it flings my likeness after the rest and true as any on the shadow'd wilds, it coaxes me to the vapor and the dusk.",
         "You will hardly know who I am or what I mean, but I shall be good health to you nevertheless.",
-        "— End of demo excerpt —"
+        "— End of Section —"
       ]
     ]
   },
@@ -203,7 +203,7 @@ export const SEED_BOOKS: Book[] = [
       [
         "Passepartout was thunderstruck. His master, so methodical, so precise, setting out to cross the world with a carpet-bag and no trunk at all.",
         "\"We have no trunk?\" he asked. \"No. Only a carpet-bag, with two shirts and three pairs of stockings for me, and the same for you. We will buy our clothes on the way.\"",
-        "— End of demo excerpt —"
+        "— End of Section —"
       ]
     ]
   },
@@ -240,7 +240,7 @@ export const SEED_BOOKS: Book[] = [
       [
         "When Zarathustra arrived at the nearest town which adjoineth the forest, he found many people assembled in the market-place; for it had been announced that a rope-dancer would show himself.",
         "And Zarathustra spake thus unto the people: \"I teach you the overman. Man is something that shall be overcome. What have ye done to overcome him?\"",
-        "— End of demo excerpt —"
+        "— End of Section —"
       ]
     ]
   },
@@ -278,7 +278,7 @@ export const SEED_BOOKS: Book[] = [
       [
         "\"She is tolerable; but not handsome enough to tempt me,\" said Mr. Darcy, and Elizabeth remained with no very cordial feelings toward him.",
         "She told the story, however, with great spirit among her friends; for she had a lively, playful disposition, which delighted in anything ridiculous.",
-        "— End of demo excerpt —"
+        "— End of Section —"
       ]
     ]
   },
@@ -315,7 +315,7 @@ export const SEED_BOOKS: Book[] = [
       [
         "The great buildings about me stood out clear and distinct, but the moon had set, and the stars were shining. I felt naked in a strange world.",
         "I saw the years pass, the flags of empires rise and fall, and the sun sweep a fiery arc across a sky that never once stood still.",
-        "— End of demo excerpt —"
+        "— End of Section —"
       ]
     ]
   },
@@ -357,7 +357,7 @@ export const SEED_BOOKS: Book[] = [
       [
         "I found that the doors were all locked behind me, and that the castle was a veritable prison, and I a prisoner!",
         "When I had written in my diary I put the book and pen in my pocket, and lay down to wait for a sleep that would not come.",
-        "— End of demo excerpt —"
+        "— End of Section —"
       ]
     ]
   },
@@ -399,7 +399,7 @@ export const SEED_BOOKS: Book[] = [
       [
         "\"When you have eliminated all which is impossible, then whatever remains, however improbable, must be the truth.\"",
         "\"Come, Watson, come! The game is afoot. Not a word! Into your clothes and come!\"",
-        "— End of demo excerpt —"
+        "— End of Section —"
       ]
     ]
   },
@@ -440,7 +440,7 @@ export const SEED_BOOKS: Book[] = [
       [
         "\"Off with her head!\" the Queen shouted at the top of her voice. Nobody moved.",
         "\"Who cares for you?\" said Alice, who had grown to her full size by this time. \"You're nothing but a pack of cards!\"",
-        "— End of demo excerpt —"
+        "— End of Section —"
       ]
     ]
   }

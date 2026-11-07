@@ -1,6 +1,6 @@
 # JoshBooks Library
 
-Build a small-scale, modern, responsive online library website demo called JoshBooks.
+Build a small-scale, modern, responsive online library website called JoshBooks.
 
 
 
@@ -16,7 +16,7 @@ Important scope
 
 
 
-This is ONLY a frontend demo for now.
+This is ONLY a frontend application for now.
 
 
 
@@ -42,7 +42,7 @@ Do NOT add:
 
 
 
-Use sample/public-domain books or clearly labeled demo books.
+Use sample/public-domain books or clearly labeled books.
 
 
 
@@ -156,7 +156,7 @@ Create a clean reading interface where users can read a selected book directly i
 
 
 
-For the demo, use local PDF files or sample/public-domain books.
+For local testing, use local PDF files or sample/public-domain books.
 
 
 
@@ -184,7 +184,7 @@ Sample content
 
 
 
-Add at least 6 sample/public-domain books to demonstrate the catalogue.
+Add at least 6 sample/public-domain books to populate the catalogue.
 
 
 
@@ -300,13 +300,13 @@ Structure the project so that we can eventually add:
 
 
 
-For this version, focus on making JoshBooks a polished, functional frontend demo that can be tested immediately.vorites/bookmarks
+For this version, focus on making JoshBooks a polished, functional frontend application that can be tested immediately.vorites/bookmarks
 
 - User profiles
 
 
 
-For this version, focus on making JoshBooks a polished, functional frontend demo that can be tested immediately.
+For this version, focus on making JoshBooks a polished, functional frontend application that can be tested immediately.
 
 This project was built with [Lovable](https://lovable.dev).
 

@@ -171,7 +171,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
               JoshBooks
             </span>
             <p className="max-w-[52ch] font-sans text-xs leading-relaxed text-parchment/50">
-              A demo digital library of public-domain works. Create a free account to keep your
+              A digital library of public-domain and timeless literary works. Create a free account to keep your
               favourites, bookmarks and reading progress.
             </p>
             <div className="flex flex-wrap gap-5 font-mono text-[11px] uppercase tracking-[0.14em] text-parchment/40">

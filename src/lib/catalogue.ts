@@ -74,6 +74,12 @@ async function fetchCatalogue(): Promise<Book[]> {
     const snapshot = await getDocs(collection(db, "books"));
     if (!snapshot.empty) {
       const books = snapshot.docs.map((d) => normalizeBook(d.data()));
+      const existingIds = new Set(books.map((b) => b.id));
+      for (const s of SEED_BOOKS) {
+        if (!existingIds.has(s.id)) {
+          books.push(s);
+        }
+      }
       return books.sort((a, b) => a.title.localeCompare(b.title));
     }
   } catch (err) {

@@ -1,5 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import * as pdfjsLib from "pdfjs-dist";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 import { bookQuery } from "@/lib/catalogue";
 import { useSavedProgress } from "@/hooks/useReadingProgress";
 import { useBookmarks } from "@/hooks/useBookmarks";
@@ -10,6 +12,13 @@ import {
   saveReaderTheme,
   type ReaderTheme,
 } from "@/lib/reading-progress";
+import { getLocalPdfBlob, storeLocalPdf } from "@/lib/file-storage";
+import { PdfPageView } from "@/components/PdfPageView";
+
+// Configure PDF.js worker
+if (typeof window !== "undefined") {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+}
 
 export const Route = createFileRoute("/read/$bookId")({
   validateSearch: (search) =>
@@ -46,7 +55,7 @@ export const Route = createFileRoute("/read/$bookId")({
     return {
       meta: [
         { title },
-        { name: "description", content: `Read an excerpt of ${book.title} by ${book.author}.` },
+        { name: "description", content: `Read ${book.title} by ${book.author} in the JoshBooks reader.` },
         { property: "og:title", content: title },
         { property: "og:description", content: book.shortDescription },
       ],
@@ -58,8 +67,6 @@ export const Route = createFileRoute("/read/$bookId")({
 const ZOOM_STEPS = [0.85, 1, 1.15, 1.35, 1.6];
 const DEFAULT_ZOOM = 1;
 
-import { getLocalPdf } from "@/lib/file-storage";
-
 function Reader() {
   const { book } = Route.useLoaderData();
   const { record, ready, save } = useSavedProgress(book.id);
@@ -70,20 +77,92 @@ function Reader() {
   const [theme, setTheme] = useState<ReaderTheme>("light");
   const [showInfo, setShowInfo] = useState(false);
   const [showResume, setShowResume] = useState(false);
-  const [docFailed, setDocFailed] = useState(false);
-  const [localDocUrl, setLocalDocUrl] = useState<string | null>(null);
+
+  // PDF Document State
+  const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
   const shellRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Load PDF from IndexedDB or documentUrl
   useEffect(() => {
-    void getLocalPdf(book.id).then((url) => {
-      if (url) setLocalDocUrl(url);
-    });
-  }, [book.id]);
+    let active = true;
 
-  const activeDocUrl = localDocUrl || book.documentUrl;
-  const isDocMode = Boolean(activeDocUrl && !docFailed);
-  const total = isDocMode ? (book.pageCount || 1020) : (book.pageCount || book.pages.length || 1);
+    async function loadPdf() {
+      setPdfLoading(true);
+      setPdfError(null);
+      try {
+        // 1. Try local storage in browser
+        const localBlob = await getLocalPdfBlob(book.id);
+        if (localBlob && active) {
+          const buffer = await localBlob.arrayBuffer();
+          const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
+          const doc = await loadingTask.promise;
+          if (active) {
+            setPdfDoc(doc);
+            setPdfLoading(false);
+            return;
+          }
+        }
+
+        // 2. Try online documentUrl
+        if (book.documentUrl && active) {
+          const loadingTask = pdfjsLib.getDocument({ url: book.documentUrl });
+          const doc = await loadingTask.promise;
+          if (active) {
+            setPdfDoc(doc);
+            setPdfLoading(false);
+            return;
+          }
+        }
+
+        if (active) {
+          setPdfLoading(false);
+        }
+      } catch (err: any) {
+        if (active) {
+          console.warn("Could not load PDF document:", err);
+          setPdfError(err?.message || "Failed to load PDF.");
+          setPdfLoading(false);
+        }
+      }
+    }
+
+    void loadPdf();
+
+    return () => {
+      active = false;
+    };
+  }, [book.id, book.documentUrl]);
+
+  // Handle in-reader PDF file selection
+  const handlePdfUpload = async (file: File) => {
+    setPdfLoading(true);
+    setPdfError(null);
+    try {
+      await storeLocalPdf(book.id, file);
+      const buffer = await file.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) });
+      const doc = await loadingTask.promise;
+      setPdfDoc(doc);
+    } catch (err: any) {
+      console.error("Failed to process uploaded PDF:", err);
+      setPdfError("Failed to process this PDF file.");
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  // Compute total pages:
+  // If PDF loaded, use pdfDoc.numPages (exact 1020 pages!).
+  // Otherwise use book.pageCount or fallback.
+  const total = pdfDoc
+    ? pdfDoc.numPages
+    : book.pageCount || (book.pages.length ? book.pages.length : 1);
+
   const zoom = ZOOM_STEPS[zoomIndex] ?? 1;
   const percent = progressPercent(page, total);
   const dark = theme === "dark";
@@ -92,8 +171,7 @@ function Reader() {
     setTheme(readReaderTheme());
   }, []);
 
-  // Offer to resume where the visitor left off (localStorage, no account),
-  // and record the book as recently opened.
+  // Offer to resume where the visitor left off
   const { page: requestedPage } = Route.useSearch();
   const { has: isBookmarked, add: addBookmark, remove: removeBookmark } = useBookmarks(book.id);
   const bookmarked = isBookmarked(page);
@@ -112,8 +190,7 @@ function Reader() {
       save(record?.page ?? 0, total);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
-
+  }, [ready, total]);
 
   const goTo = useCallback(
     (next: number) => {
@@ -129,24 +206,41 @@ function Reader() {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "ArrowRight") goTo(page + 1);
       if (event.key === "ArrowLeft") goTo(page - 1);
-      if (event.key === "Escape") setShowInfo(false);
+      if (event.key === "Escape") {
+        setShowInfo(false);
+        if (document.fullscreenElement) {
+          void document.exitFullscreen();
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [goTo, page]);
 
   useEffect(() => {
-    const onChange = () => setIsFullScreen(Boolean(document.fullscreenElement));
+    const onChange = () => {
+      setIsFullScreen(Boolean(document.fullscreenElement));
+    };
     document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
+    };
   }, []);
 
   const toggleFullScreen = () => {
-    if (typeof document === "undefined" || !document.fullscreenEnabled) return;
+    if (typeof document === "undefined") return;
     if (document.fullscreenElement) {
       void document.exitFullscreen();
     } else {
-      void shellRef.current?.requestFullscreen();
+      // Fullscreen the reading page surface
+      const targetEl = pageRef.current || shellRef.current;
+      if (targetEl?.requestFullscreen) {
+        void targetEl.requestFullscreen();
+      } else if ((targetEl as any)?.webkitRequestFullscreen) {
+        void (targetEl as any).webkitRequestFullscreen();
+      }
     }
   };
 
@@ -166,7 +260,19 @@ function Reader() {
       ref={shellRef}
       className="relative flex min-h-screen flex-col bg-water-deep font-sans text-parchment"
     >
-      {/* Minimal reader chrome — site header/footer are intentionally hidden. */}
+      {/* Hidden file input for attaching/loading PDF */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void handlePdfUpload(file);
+        }}
+      />
+
+      {/* Reader header chrome */}
       <header className="relative z-20 border-b border-parchment/10 bg-water-deep/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-5">
           <div className="min-w-0 flex-1">
@@ -177,6 +283,16 @@ function Reader() {
               {book.title}
             </h1>
           </div>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            title="Load local PDF document"
+            className="shrink-0 rounded-full border border-sand/40 bg-sand/10 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-sand transition-colors hover:bg-sand/20"
+          >
+            {pdfDoc ? "Change PDF" : "Attach PDF"}
+          </button>
+
           <button
             type="button"
             onClick={() => setShowInfo(true)}
@@ -242,55 +358,177 @@ function Reader() {
       ) : null}
 
       <main className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-4 py-5 sm:px-5 sm:py-6">
-        {activeDocUrl && !docFailed ? (
-          <iframe
-            src={activeDocUrl}
-            title={`${book.title} document`}
-            onError={() => setDocFailed(true)}
-            className="h-[68vh] w-full rounded-2xl border border-parchment/10 bg-parchment shadow-2xl"
-          />
-        ) : (
-          <>
-            {activeDocUrl && docFailed ? (
-              <div className="mb-4 rounded-xl border border-oxblood/40 bg-oxblood/15 p-4 font-sans text-sm text-parchment/85">
-                The document file for this title could not be loaded. Showing the text edition
-                instead.
-              </div>
-            ) : null}
-            <div
-              ref={pageRef}
-              className={`max-h-[66vh] min-h-[58vh] overflow-y-auto rounded-2xl border px-5 py-8 shadow-2xl transition-colors duration-500 sm:px-10 sm:py-12 ${
-                dark
-                  ? "border-parchment/10 bg-ink text-parchment/90"
-                  : "border-parchment/10 bg-parchment text-ink"
-              }`}
-            >
-              <div
-                style={{ fontSize: `${zoom}rem`, lineHeight: 1.8 }}
-                className="mx-auto max-w-[62ch] font-serif transition-[font-size] duration-300"
+        {/* Main Reading Surface / White Page */}
+        <div
+          ref={pageRef}
+          className={`relative min-h-[60vh] overflow-y-auto rounded-2xl border shadow-2xl transition-colors duration-500 ${
+            isFullScreen
+              ? "fixed inset-0 z-50 flex h-screen w-screen flex-col items-center justify-start overflow-y-auto rounded-none p-4 sm:p-8"
+              : "max-h-[70vh] px-5 py-8 sm:px-10 sm:py-12"
+          } ${
+            dark
+              ? "border-parchment/10 bg-ink text-parchment/90"
+              : "border-parchment/10 bg-parchment text-ink"
+          }`}
+        >
+          {/* Fullscreen Floating Reader HUD */}
+          {isFullScreen ? (
+            <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-parchment/20 bg-water-deep/95 px-4 py-2.5 text-parchment shadow-2xl backdrop-blur-md">
+              <button
+                type="button"
+                onClick={() => goTo(page - 1)}
+                disabled={page === 0}
+                className="rounded-full border border-parchment/20 px-3 py-1.5 font-mono text-xs hover:border-parchment/50 disabled:opacity-30"
               >
-                {(book.pages[page] ?? []).map((paragraph, index) => (
-                  <p key={index} className={index === 0 ? "" : "mt-6"}>
-                    {paragraph}
-                  </p>
-                ))}
-                <p
-                  className={`mt-10 text-center font-mono text-[10px] uppercase tracking-[0.2em] ${
-                    dark ? "text-parchment/35" : "text-ink/40"
+                ← Prev
+              </button>
+              <span className="px-2 font-mono text-xs uppercase tracking-wider text-parchment/80">
+                {page + 1} / {total}
+              </span>
+              <button
+                type="button"
+                onClick={() => goTo(page + 1)}
+                disabled={page === total - 1}
+                className="rounded-full bg-oxblood px-3.5 py-1.5 font-mono text-xs font-semibold hover:bg-oxblood/90 disabled:opacity-30"
+              >
+                Next →
+              </button>
+              <div className="mx-1 h-4 w-px bg-parchment/20" />
+              <button
+                type="button"
+                onClick={() => setZoomIndex((i) => Math.max(0, i - 1))}
+                disabled={zoomIndex === 0}
+                aria-label="Zoom out"
+                className="size-7 rounded-full border border-parchment/20 text-xs"
+              >
+                −
+              </button>
+              <span className="font-mono text-[10px] text-parchment/60">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setZoomIndex((i) => Math.min(ZOOM_STEPS.length - 1, i + 1))}
+                disabled={zoomIndex === ZOOM_STEPS.length - 1}
+                aria-label="Zoom in"
+                className="size-7 rounded-full border border-parchment/20 text-xs"
+              >
+                +
+              </button>
+              <div className="mx-1 h-4 w-px bg-parchment/20" />
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="size-7 rounded-full border border-parchment/20 text-xs"
+                title="Toggle Theme"
+              >
+                {dark ? "☀" : "☾"}
+              </button>
+              <button
+                type="button"
+                onClick={toggleFullScreen}
+                className="rounded-full border border-sand/40 bg-sand/15 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-sand hover:bg-sand/25"
+              >
+                Exit Full Screen
+              </button>
+            </div>
+          ) : null}
+
+          {/* PDF Page Rendering Mode */}
+          {pdfDoc ? (
+            <div className="mx-auto w-full max-w-2xl py-2">
+              <PdfPageView
+                pdf={pdfDoc}
+                pageNumber={page + 1}
+                zoom={zoom}
+                dark={dark}
+              />
+              <p
+                className={`mt-8 text-center font-mono text-[10px] uppercase tracking-[0.2em] ${
+                  dark ? "text-parchment/35" : "text-ink/40"
+                }`}
+              >
+                {book.title} · page {page + 1} of {total}
+              </p>
+            </div>
+          ) : pdfLoading ? (
+            <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
+              <div className="size-8 animate-spin rounded-full border-2 border-oxblood border-t-transparent" />
+              <p className="font-mono text-xs uppercase tracking-widest text-parchment/70">
+                Loading complete document…
+              </p>
+            </div>
+          ) : (
+            /* Text Page Fallback Mode */
+            <div
+              style={{ fontSize: `${zoom}rem`, lineHeight: 1.8 }}
+              className="mx-auto max-w-[62ch] font-serif transition-[font-size] duration-300"
+            >
+              {book.pageCount && book.pageCount > (book.pages.length || 0) && !pdfDoc ? (
+                <div
+                  className={`mb-8 rounded-xl border p-5 font-sans ${
+                    dark
+                      ? "border-sand/20 bg-water-deep/50 text-parchment/90"
+                      : "border-sand/40 bg-sand/15 text-ink/90"
                   }`}
                 >
-                  {book.title} · demo excerpt · page {page + 1} of {total}
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h3 className="font-serif text-base font-semibold">
+                        Complete {book.pageCount}-Page Volume
+                      </h3>
+                      <p className="mt-0.5 text-xs opacity-75">
+                        Attach your PDF file to view every page in high definition with smooth page turning.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="shrink-0 rounded-full bg-oxblood px-4 py-2 font-sans text-xs font-semibold text-parchment hover:bg-oxblood/90"
+                    >
+                      Attach PDF File
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {(book.pages[page] ?? []).map((paragraph, index) => (
+                <p key={index} className={index === 0 ? "" : "mt-6"}>
+                  {paragraph}
                 </p>
-              </div>
+              ))}
+
+              {!(book.pages[page] && book.pages[page].length) && (
+                <div className="py-12 text-center font-sans text-sm opacity-60">
+                  <p>Page {page + 1} of {total}</p>
+                  <p className="mt-2 text-xs">
+                    Attach the full PDF to read this page and all {total} pages.
+                  </p>
+                </div>
+              )}
+
+              <p
+                className={`mt-10 text-center font-mono text-[10px] uppercase tracking-[0.2em] ${
+                  dark ? "text-parchment/35" : "text-ink/40"
+                }`}
+              >
+                {book.title} · page {page + 1} of {total}
+              </p>
             </div>
-          </>
-        )}
+          )}
+        </div>
       </main>
 
+      {/* Reader bottom navigation controls */}
       <div className="sticky bottom-0 z-20 border-t border-parchment/10 bg-water-deep/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="flex items-center justify-between gap-2 sm:justify-start">
-            <button type="button" onClick={() => goTo(page - 1)} disabled={page === 0} className={ctrl}>
+            <button
+              type="button"
+              onClick={() => goTo(page - 1)}
+              disabled={page === 0}
+              className={ctrl}
+            >
               ← Prev
             </button>
             <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-parchment/60">
@@ -406,13 +644,25 @@ function Reader() {
               ))}
             </dl>
 
-            <Link
-              to="/books/$bookId"
-              params={{ bookId: book.id }}
-              className="mt-6 inline-flex rounded-full bg-oxblood px-5 py-3 font-sans text-sm font-semibold text-parchment transition-colors hover:bg-oxblood/90"
-            >
-              Back to Book Details
-            </Link>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowInfo(false);
+                  fileInputRef.current?.click();
+                }}
+                className="rounded-full border border-sand/40 bg-sand/15 px-5 py-3 font-sans text-sm font-semibold text-sand transition-colors hover:bg-sand/25"
+              >
+                Attach / Change PDF
+              </button>
+              <Link
+                to="/books/$bookId"
+                params={{ bookId: book.id }}
+                className="inline-flex rounded-full bg-oxblood px-5 py-3 font-sans text-sm font-semibold text-parchment transition-colors hover:bg-oxblood/90"
+              >
+                Back to Book Details
+              </Link>
+            </div>
           </div>
         </div>
       ) : null}

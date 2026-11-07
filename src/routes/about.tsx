@@ -9,12 +9,12 @@ export const Route = createFileRoute("/about")({
       {
         name: "description",
         content:
-          "JoshBooks is a demo digital library for public-domain works: no accounts, no borrowing, no payments — just a well-kept shelf and an in-browser reader.",
+          "JoshBooks is a digital library for public-domain works: a well-kept shelf, personal bookmarks, and an in-browser reader.",
       },
       { property: "og:title", content: "About JoshBooks" },
       {
         property: "og:description",
-        content: "A demo digital library for public-domain works, built for quiet reading.",
+        content: "A digital library for public-domain works, built for quiet reading.",
       },
     ],
   }),
@@ -36,14 +36,14 @@ function AboutPage() {
           <p className="mt-4 text-pretty font-sans text-[15px] leading-relaxed text-parchment/70">
             JoshBooks is a small digital reading room built around a simple idea: a shelf worth
             browsing, and a page worth reading. The catalogue holds {books.length} public-domain
-            volumes, each with a cover, a short note, and a readable excerpt you can open straight
+            volumes, each with a cover, a short note, and a readable volume you can open straight
             away.
           </p>
         </section>
 
         <section className="animate-rise rounded-2xl border border-parchment/10 bg-glass/25 p-6 backdrop-blur-md [animation-delay:80ms]">
           <h2 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-parchment">
-            What this demo is
+            Features & Capabilities
           </h2>
           <ul className="mt-4 space-y-3 font-sans text-sm leading-relaxed text-parchment/70">
             <li>A browsable catalogue with instant search and category filtering.</li>
